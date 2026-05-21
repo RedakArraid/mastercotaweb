@@ -4,19 +4,16 @@ import React, { useState, useEffect, useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { 
-  Shield, 
-  Calendar, 
-  Users, 
-  Award, 
-  Loader2, 
+  Shield,
+  Calendar,
+  Users,
+  Loader2,
   AlertCircle,
-  TrendingUp,
   CheckCircle,
   Copy,
   Smartphone,
   ChevronLeft,
-  Info,
-  DollarSign
+  ArrowLeftRight,
 } from "lucide-react";
 
 // Types
@@ -81,8 +78,8 @@ export default function CotisationPublicPage() {
   const [error, setError] = useState<string | null>(null);
 
   // Form State
-  const [modePay, setModePay] = useState<boolean>(true); // true = Gross (donor pays), false = Net (cagnotte receives)
-  const [amountInput, setAmountInput] = useState<string>("");
+  const [grossInput, setGrossInput] = useState<string>("");
+  const [netInput, setNetInput] = useState<string>("");
   const [contributorName, setContributorName] = useState<string>("");
   const [contributorPhone, setContributorPhone] = useState<string>("");
   const [anonymous, setAnonymous] = useState<boolean>(false);
@@ -186,32 +183,32 @@ export default function CotisationPublicPage() {
     fetchInitialData();
   }, [slug]);
 
-  // Calculations
+  // Calculations (always derived from gross)
   const calculatedFees = useMemo(() => {
-    const rawVal = parseFloat(amountInput) || 0;
-    if (rawVal <= 0) {
-      return { gross: 0, net: 0, paystackFee: 0, platformFee: 0 };
-    }
+    const gross = parseFloat(grossInput) || 0;
+    if (gross <= 0) return { gross: 0, net: 0, paystackFee: 0, platformFee: 0 };
+    const paystackFee = calcPaystackFee(gross);
+    const platformFee = calcPlatformFee(gross);
+    const net = calcNet(gross);
+    return { gross, net, paystackFee, platformFee };
+  }, [grossInput]);
 
-    if (modePay) {
-      // Input is gross
-      const paystackFee = calcPaystackFee(rawVal);
-      const platformFee = calcPlatformFee(rawVal);
-      const net = calcNet(rawVal);
-      return { gross: rawVal, net, paystackFee, platformFee };
-    } else {
-      // Input is net
-      const gross = grossFromNet(rawVal);
-      const paystackFee = calcPaystackFee(gross);
-      const platformFee = calcPlatformFee(gross);
-      return { gross, net: rawVal, paystackFee, platformFee };
-    }
-  }, [amountInput, modePay]);
+  // Sync handlers
+  function handleGrossChange(val: string) {
+    setGrossInput(val);
+    const gross = parseFloat(val) || 0;
+    setNetInput(gross > 0 ? calcNet(gross).toFixed(0) : "");
+  }
+
+  function handleNetChange(val: string) {
+    setNetInput(val);
+    const net = parseFloat(val) || 0;
+    setGrossInput(net > 0 ? grossFromNet(net).toFixed(0) : "");
+  }
 
   // Preset click handler
   const handlePresetClick = (amount: number) => {
-    setModePay(true); // Presets are gross payments
-    setAmountInput(amount.toString());
+    handleGrossChange(amount.toString());
   };
 
   // Payment Handler
@@ -219,7 +216,7 @@ export default function CotisationPublicPage() {
     e.preventDefault();
     if (!cotisation) return;
 
-    if (!amountInput || parseFloat(amountInput) <= 0) {
+    if (!grossInput || parseFloat(grossInput) <= 0) {
       alert("Veuillez entrer un montant valide.");
       return;
     }
@@ -557,43 +554,49 @@ export default function CotisationPublicPage() {
               /* Input Form */
               <form onSubmit={handlePay} className="p-6 space-y-6">
                 
-                {/* 1. Mode Switcher (Gross vs Net) */}
-                <div className="p-1.5 bg-app-border-light rounded-2xl flex gap-1 border border-app-border/40">
-                  <button
-                    type="button"
-                    onClick={() => setModePay(true)}
-                    className={`flex-1 py-3 text-xs font-bold rounded-xl transition-all ${modePay ? "bg-white text-text-primary shadow-sm" : "text-text-secondary hover:text-text-primary"}`}
-                  >
-                    Je saisis ce que je paie
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setModePay(false)}
-                    className={`flex-1 py-3 text-xs font-bold rounded-xl transition-all ${!modePay ? "bg-white text-text-primary shadow-sm" : "text-text-secondary hover:text-text-primary"}`}
-                  >
-                    La cagnotte doit recevoir
-                  </button>
-                </div>
+                {/* 1. Deux champs synchronisés */}
+                <div className="space-y-3">
+                  <div className="flex items-end gap-2">
+                    {/* Champ gross */}
+                    <div className="flex-1">
+                      <label className="text-xs font-bold text-text-secondary uppercase tracking-wider block mb-2">
+                        Je veux payer
+                      </label>
+                      <div className="relative rounded-2xl border border-app-border bg-app-surface focus-within:border-brand-gold focus-within:ring-2 focus-within:ring-brand-gold/20 transition-all">
+                        <input
+                          type="number"
+                          placeholder="0"
+                          min="1"
+                          value={grossInput}
+                          onChange={(e) => handleGrossChange(e.target.value)}
+                          className="w-full pl-4 pr-14 py-4 bg-transparent outline-none font-bold text-lg text-text-primary"
+                          required
+                        />
+                        <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-bold text-text-tertiary">FCFA</span>
+                      </div>
+                    </div>
 
-                {/* 2. Amount Input & Presets */}
-                <div className="space-y-4">
-                  <div>
-                    <label className="text-xs font-bold text-text-secondary uppercase tracking-wider block mb-2">
-                      Montant {modePay ? "brut" : "net souhaité"} (FCFA)
-                    </label>
-                    <div className="relative rounded-2xl border border-app-border bg-app-surface focus-within:border-brand-gold focus-within:ring-2 focus-within:ring-brand-gold/20 transition-all">
-                      <input
-                        type="number"
-                        placeholder="0"
-                        min="100"
-                        value={amountInput}
-                        onChange={(e) => setAmountInput(e.target.value)}
-                        className="w-full pl-6 pr-16 py-4 bg-transparent outline-none font-bold text-lg text-text-primary"
-                        required
-                      />
-                      <span className="absolute right-6 top-1/2 -translate-y-1/2 text-sm font-bold text-text-tertiary">
-                        FCFA
-                      </span>
+                    {/* Icône séparateur */}
+                    <div className="mb-3 flex-shrink-0 w-9 h-9 rounded-full bg-app-border-light border border-app-border flex items-center justify-center">
+                      <ArrowLeftRight className="w-3.5 h-3.5 text-text-tertiary" />
+                    </div>
+
+                    {/* Champ net */}
+                    <div className="flex-1">
+                      <label className="text-xs font-bold text-text-secondary uppercase tracking-wider block mb-2">
+                        Dans la cagnotte
+                      </label>
+                      <div className="relative rounded-2xl border border-app-border bg-app-surface focus-within:border-brand-gold focus-within:ring-2 focus-within:ring-brand-gold/20 transition-all">
+                        <input
+                          type="number"
+                          placeholder="0"
+                          min="1"
+                          value={netInput}
+                          onChange={(e) => handleNetChange(e.target.value)}
+                          className="w-full pl-4 pr-14 py-4 bg-transparent outline-none font-bold text-lg text-text-primary"
+                        />
+                        <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-bold text-text-tertiary">FCFA</span>
+                      </div>
                     </div>
                   </div>
 
@@ -604,7 +607,7 @@ export default function CotisationPublicPage() {
                         key={preset}
                         type="button"
                         onClick={() => handlePresetClick(preset)}
-                        className={`py-2 rounded-xl text-xs font-bold border transition-all ${amountInput === preset.toString() && modePay ? "bg-brand-gold border-brand-gold text-white shadow-md shadow-brand-gold/15" : "bg-white border-app-border text-text-secondary hover:border-text-tertiary"}`}
+                        className={`py-2 rounded-xl text-xs font-bold border transition-all ${grossInput === preset.toString() ? "bg-brand-gold border-brand-gold text-white shadow-md shadow-brand-gold/15" : "bg-white border-app-border text-text-secondary hover:border-text-tertiary"}`}
                       >
                         +{formatMoney(preset)}
                       </button>
@@ -655,34 +658,21 @@ export default function CotisationPublicPage() {
                   </div>
                 </div>
 
-                {/* 4. Live Calculations Panel */}
-                {parseFloat(amountInput) > 0 && (
-                  <div className="bg-app-surface-elevated rounded-2xl p-5 border border-app-border/60 space-y-3">
-                    <h4 className="text-xs font-bold text-text-secondary uppercase tracking-wider border-b border-app-border/40 pb-2">
-                      Détails de la transaction
-                    </h4>
-                    
-                    <div className="space-y-2 text-xs font-medium">
-                      <div className="flex justify-between">
-                        <span className="text-text-secondary">Montant facturé (Payé par vous)</span>
-                        <span className="font-bold text-text-primary">{formatMoney(calculatedFees.gross)} FCFA</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-text-secondary">Frais réseau Mobile Money (Paystack 1.5%)</span>
-                        <span className="font-bold text-text-primary">-{formatMoney(calculatedFees.paystackFee)} FCFA</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-text-secondary">Frais plate-forme (Mastercota 1.0%)</span>
-                        <span className="font-bold text-text-primary">-{formatMoney(calculatedFees.platformFee)} FCFA</span>
-                      </div>
-                      
-                      <div className="h-[1px] bg-app-border/40 my-1" />
-                      
-                      <div className="flex justify-between text-sm font-bold">
-                        <span className="text-text-primary">Montant net versé à la cagnotte</span>
-                        <span className="text-brand-gold font-extrabold">{formatMoney(calculatedFees.net)} FCFA</span>
-                      </div>
+                {/* 4. Frais */}
+                {calculatedFees.gross > 0 && (
+                  <div className="bg-app-surface-elevated rounded-2xl px-4 py-3 border border-app-border/60 flex items-center gap-3 text-xs">
+                    <div className="w-5 h-5 rounded-full bg-app-border flex items-center justify-center flex-shrink-0">
+                      <span className="text-[10px] text-text-tertiary font-bold">i</span>
                     </div>
+                    <span className="text-text-secondary flex-1">
+                      Frais Paystack {calculatedFees.paystackFee >= PAYSTACK_CAP ? "(plafonné)" : "1,5%"}{" "}
+                      <span className="font-bold text-text-primary">−{formatMoney(calculatedFees.paystackFee)} F</span>
+                      {" · "}Mastercota 1%{" "}
+                      <span className="font-bold text-text-primary">−{formatMoney(calculatedFees.platformFee)} F</span>
+                    </span>
+                    <span className="font-bold text-text-secondary whitespace-nowrap">
+                      = −{formatMoney(calculatedFees.paystackFee + calculatedFees.platformFee)} F
+                    </span>
                   </div>
                 )}
 
@@ -699,7 +689,7 @@ export default function CotisationPublicPage() {
                     </>
                   ) : (
                     <>
-                      Contribuer {parseFloat(amountInput) > 0 ? `${formatMoney(calculatedFees.gross)} F` : ""}
+                      Contribuer {calculatedFees.gross > 0 ? `${formatMoney(calculatedFees.gross)} F` : ""}
                     </>
                   )}
                 </button>
