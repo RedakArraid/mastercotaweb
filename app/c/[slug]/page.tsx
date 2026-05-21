@@ -757,10 +757,13 @@ export default function CotisationPublicPage() {
             </p>
           </div>
 
-          <button className="px-6 py-3.5 bg-brand-gold hover:bg-brand-gold-dark text-white rounded-2xl text-xs font-bold flex items-center gap-2 shadow-lg shadow-brand-gold/15 whitespace-nowrap">
-            <Smartphone className="w-4.5 h-4.5" />
+          <a
+            href="/#download"
+            className="px-6 py-3.5 bg-brand-gold hover:bg-brand-gold-dark text-white rounded-2xl text-xs font-bold flex items-center gap-2 shadow-lg shadow-brand-gold/15 whitespace-nowrap transition-colors"
+          >
+            <Smartphone className="w-4 h-4" />
             Télécharger Mastercota
-          </button>
+          </a>
         </div>
 
         <p className="text-[10px] text-text-tertiary font-medium">
