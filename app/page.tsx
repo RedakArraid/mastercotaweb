@@ -307,7 +307,7 @@ export default function Home() {
               {[
                 "Chiffrement AES 256 bits des transactions",
                 "Support complet Wave, Orange Money, MTN MoMo, Moov",
-                "Reversement automatique et commission transparente",
+                "Reversement automatique dès le premier FCFA collecté",
                 "Protection anti-fraude active 24/7",
               ].map((item, idx) => (
                 <li key={idx} className="flex items-center gap-3 text-sm text-white/90">
@@ -373,7 +373,7 @@ export default function Home() {
 
           <div className="flex-shrink-0 grid grid-cols-2 gap-4 w-full md:w-auto md:min-w-[300px]">
             {[
-              { value: "2.5%", label: "Frais tout inclus", sub: "Paystack 1.5% + Mastercota 1%", color: "brand-gold" },
+              { value: "2.5%", label: "Frais tout inclus", sub: "Aucun frais caché", color: "brand-gold" },
               { value: "0s", label: "Sans inscription", sub: "Pour contribuer via le lien", color: "brand-blue" },
               { value: "100%", label: "Transparence", sub: "Liste publique des contributions", color: "emerald-500" },
               { value: "24/7", label: "Disponible", sub: "Paiements en temps réel", color: "purple-500" },

@@ -665,13 +665,13 @@ export default function CotisationPublicPage() {
                       <span className="text-[10px] text-text-tertiary font-bold">i</span>
                     </div>
                     <span className="text-text-secondary flex-1">
-                      Frais Paystack {calculatedFees.paystackFee >= PAYSTACK_CAP ? "(plafonné)" : "1,5%"}{" "}
-                      <span className="font-bold text-text-primary">−{formatMoney(calculatedFees.paystackFee)} F</span>
-                      {" · "}Mastercota 1%{" "}
-                      <span className="font-bold text-text-primary">−{formatMoney(calculatedFees.platformFee)} F</span>
+                      Frais de service{" "}
+                      <span className="font-bold text-text-primary">2,5%</span>
+                      {" · "}Montant net dans la cagnotte{" "}
+                      <span className="font-bold text-success">{formatMoney(calculatedFees.net)} F</span>
                     </span>
                     <span className="font-bold text-text-secondary whitespace-nowrap">
-                      = −{formatMoney(calculatedFees.paystackFee + calculatedFees.platformFee)} F
+                      −{formatMoney(calculatedFees.paystackFee + calculatedFees.platformFee)} F
                     </span>
                   </div>
                 )}
