@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { supabase } from "@/lib/supabase";
 import {
   LayoutDashboard, Users, Wallet, CreditCard, Settings,
@@ -39,19 +40,19 @@ function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
         `}
       >
         {/* Logo */}
-        <div className="flex items-center justify-between px-5 h-16 border-b border-white/8 flex-shrink-0">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-[#EEA226] to-[#C78114] flex items-center justify-center shadow-lg shadow-[#EEA226]/25">
-              <span className="text-white font-black text-sm leading-none">₣</span>
+        <div className="flex items-center justify-between px-4 h-16 border-b border-white/8 flex-shrink-0">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="w-9 h-9 rounded-xl overflow-hidden flex-shrink-0 bg-[#0D1829]">
+              <Image src="/app_icon.png" alt="Mastercota" width={36} height={36} className="w-full h-full object-cover" />
             </div>
-            <div>
-              <p className="text-white font-extrabold text-sm leading-tight">Mastercota</p>
+            <div className="min-w-0">
+              <p className="text-white font-extrabold text-sm leading-tight tracking-tight">Mastercota</p>
               <p className="text-white/30 text-[10px] leading-tight">Admin Dashboard</p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="md:hidden w-7 h-7 flex items-center justify-center rounded-lg text-white/40 hover:text-white hover:bg-white/10 transition-all"
+            className="md:hidden w-7 h-7 flex items-center justify-center rounded-lg text-white/40 hover:text-white hover:bg-white/10 transition-all flex-shrink-0"
           >
             <X className="w-4 h-4" />
           </button>
@@ -135,8 +136,8 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
             <Menu className="w-5 h-5" />
           </button>
           <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-[#EEA226] to-[#C78114] flex items-center justify-center">
-              <span className="text-white font-black text-xs">₣</span>
+            <div className="w-7 h-7 rounded-lg overflow-hidden bg-[#0D1829] flex-shrink-0">
+              <Image src="/app_icon.png" alt="Mastercota" width={28} height={28} className="w-full h-full object-cover" />
             </div>
             <span className="font-extrabold text-sm text-[#0A1120]">
               Mastercota Admin

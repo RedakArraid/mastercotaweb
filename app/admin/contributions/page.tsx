@@ -3,9 +3,10 @@
 import { useEffect, useState, useCallback } from "react";
 import { adminFetch } from "@/lib/admin-api";
 import {
-  Search, ChevronLeft, ChevronRight, CreditCard,
+  Search, CreditCard,
   RefreshCw, ExternalLink, Filter, Phone,
 } from "lucide-react";
+import { Pagination } from "@/app/admin/_components/Pagination";
 
 interface ContributionRow {
   id: string;
@@ -250,33 +251,7 @@ export default function ContributionsPage() {
           </>
         )}
 
-        {/* Pagination */}
-        {data && totalPages > 1 && (
-          <div className="flex items-center justify-between px-4 py-3 border-t border-[#F1F5F9] bg-[#F8FAFC]">
-            <p className="text-xs text-[#64748B]">
-              {(page - 1) * limit + 1}–{Math.min(page * limit, data.total)} sur {data.total}
-            </p>
-            <div className="flex items-center gap-1">
-              <button
-                onClick={() => setPage(p => Math.max(1, p - 1))}
-                disabled={page === 1}
-                className="p-1.5 rounded-lg text-[#64748B] hover:bg-white hover:text-[#0A1120] disabled:opacity-30 disabled:cursor-not-allowed transition-all"
-              >
-                <ChevronLeft className="w-4 h-4" />
-              </button>
-              <span className="text-xs font-medium text-[#0A1120] px-2">
-                {page} / {totalPages}
-              </span>
-              <button
-                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-                disabled={page === totalPages}
-                className="p-1.5 rounded-lg text-[#64748B] hover:bg-white hover:text-[#0A1120] disabled:opacity-30 disabled:cursor-not-allowed transition-all"
-              >
-                <ChevronRight className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-        )}
+        <Pagination page={page} totalPages={totalPages} total={data?.total ?? 0} limit={limit} onChange={setPage} />
       </div>
     </div>
   );
