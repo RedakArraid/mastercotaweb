@@ -43,8 +43,8 @@ export async function GET(request: Request) {
     cotisation_id: c.cotisation_id,
     cotisation_title: titlesById[c.cotisation_id as string] ?? "—",
     cotisation_slug: slugsById[c.cotisation_id as string] ?? "",
-    contributor_name: c.contributor_name,
-    contributor_phone: c.contributor_phone,
+    contributor_name: c.contributor_name ?? "",
+    contributor_phone: c.contributor_phone ?? "",
     amount: c.amount,
     status: c.status,
     paystack_reference: c.paystack_reference ?? "",
@@ -56,8 +56,8 @@ export async function GET(request: Request) {
     const q = search.toLowerCase();
     mapped = mapped.filter(
       c =>
-        (c.contributor_name as string).toLowerCase().includes(q) ||
-        (c.contributor_phone as string).includes(q) ||
+        c.contributor_name.toLowerCase().includes(q) ||
+        c.contributor_phone.includes(q) ||
         c.cotisation_title.toLowerCase().includes(q)
     );
   }

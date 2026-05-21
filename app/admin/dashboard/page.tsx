@@ -94,7 +94,7 @@ function RevenueChart({ data }: { data: { date: string; amount: number; count: n
             className="flex-1 rounded-sm cursor-default transition-opacity hover:opacity-80"
             style={{
               height: `${Math.max(pct, hasValue ? 4 : 0)}%`,
-              backgroundColor: isRecent ? "#1E40AF" : "#BFDBFE",
+              backgroundColor: isRecent ? "#1E5BB4" : "#1E5BB440",
               minHeight: hasValue ? 3 : 0,
             }}
           />
@@ -109,7 +109,7 @@ function RevenueChart({ data }: { data: { date: string; amount: number; count: n
 function StatusBadge({ status }: { status: string }) {
   const cfg: Record<string, { bg: string; text: string; label: string }> = {
     active: { bg: "bg-emerald-50", text: "text-emerald-700", label: "Actif" },
-    completed: { bg: "bg-blue-50", text: "text-blue-700", label: "Complété" },
+    completed: { bg: "bg-[#1E5BB4]/10", text: "text-[#1E5BB4]", label: "Complété" },
     closed: { bg: "bg-slate-100", text: "text-slate-500", label: "Fermé" },
     paid: { bg: "bg-emerald-50", text: "text-emerald-700", label: "Payé" },
     pending: { bg: "bg-amber-50", text: "text-amber-700", label: "En attente" },
@@ -148,7 +148,7 @@ export default function DashboardPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <Loader2 className="w-7 h-7 text-[#1E40AF] animate-spin" />
+        <Loader2 className="w-7 h-7 text-[#EEA226] animate-spin" />
       </div>
     );
   }
@@ -204,16 +204,16 @@ export default function DashboardPage() {
           value={fmt.format(users.total)}
           sub={`+${users.thisMonth} ce mois`}
           trendValue={userTrend}
-          iconBg="bg-blue-50"
-          iconColor="text-blue-600"
+          iconBg="bg-[#1E5BB4]/10"
+          iconColor="text-[#1E5BB4]"
         />
         <StatCard
           icon={Wallet}
           label="Cotisations"
           value={fmt.format(cotisations.total)}
           sub={`${cotisations.active} actives`}
-          iconBg="bg-violet-50"
-          iconColor="text-violet-600"
+          iconBg="bg-[#EEA226]/10"
+          iconColor="text-[#EEA226]"
         />
         <StatCard
           icon={CreditCard}
@@ -245,11 +245,11 @@ export default function DashboardPage() {
           </div>
           <div className="flex items-center gap-3 text-xs text-[#94A3B8]">
             <span className="flex items-center gap-1.5">
-              <span className="w-3 h-3 rounded-sm bg-[#1E40AF] inline-block" />
+              <span className="w-3 h-3 rounded-sm bg-[#1E5BB4] inline-block" />
               7 derniers jours
             </span>
             <span className="flex items-center gap-1.5">
-              <span className="w-3 h-3 rounded-sm bg-[#BFDBFE] inline-block" />
+              <span className="w-3 h-3 rounded-sm bg-[#1E5BB4]/30 inline-block" />
               Précédent
             </span>
           </div>
@@ -265,7 +265,7 @@ export default function DashboardPage() {
       <div className="grid grid-cols-3 gap-3">
         {[
           { label: "Actives", value: cotisations.active, color: "bg-emerald-500" },
-          { label: "Complétées", value: cotisations.completed, color: "bg-blue-500" },
+          { label: "Complétées", value: cotisations.completed, color: "bg-[#1E5BB4]" },
           { label: "Fermées", value: cotisations.closed, color: "bg-slate-400" },
         ].map(({ label, value, color }) => (
           <div key={label} className="bg-white rounded-2xl p-4 border border-[#E2E8F0] shadow-sm flex items-center gap-3">
@@ -285,10 +285,10 @@ export default function DashboardPage() {
         <div className="bg-white rounded-2xl border border-[#E2E8F0] shadow-sm overflow-hidden">
           <div className="flex items-center justify-between px-5 py-4 border-b border-[#F1F5F9]">
             <div className="flex items-center gap-2.5">
-              <Activity className="w-4 h-4 text-[#1E40AF]" />
+              <Activity className="w-4 h-4 text-[#1E5BB4]" />
               <h2 className="font-bold text-[#0A1120] text-sm">Derniers paiements</h2>
             </div>
-            <Link href="/admin/contributions" className="flex items-center gap-1 text-xs text-[#1E40AF] font-semibold hover:underline">
+            <Link href="/admin/contributions" className="flex items-center gap-1 text-xs text-[#1E5BB4] font-semibold hover:underline">
               Voir tout <ChevronRight className="w-3 h-3" />
             </Link>
           </div>
@@ -323,7 +323,7 @@ export default function DashboardPage() {
               <Wallet className="w-4 h-4 text-violet-600" />
               <h2 className="font-bold text-[#0A1120] text-sm">Cotisations récentes</h2>
             </div>
-            <Link href="/admin/cotisations" className="flex items-center gap-1 text-xs text-[#1E40AF] font-semibold hover:underline">
+            <Link href="/admin/cotisations" className="flex items-center gap-1 text-xs text-[#1E5BB4] font-semibold hover:underline">
               Voir tout <ChevronRight className="w-3 h-3" />
             </Link>
           </div>
@@ -346,7 +346,7 @@ export default function DashboardPage() {
                     <div className="flex items-center gap-2">
                       <div className="flex-1 h-1.5 bg-[#F1F5F9] rounded-full overflow-hidden">
                         <div
-                          className="h-full bg-[#1E40AF] rounded-full transition-all"
+                          className="h-full bg-gradient-to-r from-[#EEA226] to-[#1E5BB4] rounded-full transition-all"
                           style={{ width: `${Math.min(pct, 100)}%` }}
                         />
                       </div>

@@ -52,7 +52,7 @@ export default function AdminLogin() {
                 required
                 autoFocus
                 placeholder="admin@mastercota.com"
-                className="w-full px-4 py-3 rounded-xl border border-[#E8ECF2] bg-[#F5F7FB] text-[#0A1120] text-sm focus:outline-none focus:ring-2 focus:ring-[#1E40AF]/20 focus:border-[#1E40AF] transition-all placeholder:text-[#CBD5E1]"
+                className="w-full px-4 py-3 rounded-xl border border-[#E8ECF2] bg-[#F5F7FB] text-[#0A1120] text-sm focus:outline-none focus:ring-2 focus:ring-[#1E5BB4]/20 focus:border-[#1E5BB4] transition-all placeholder:text-[#CBD5E1]"
               />
             </div>
 
@@ -65,7 +65,7 @@ export default function AdminLogin() {
                   onChange={(e) => setPassword(e.target.value)}
                   required
                   placeholder="••••••••"
-                  className="w-full px-4 py-3 pr-12 rounded-xl border border-[#E8ECF2] bg-[#F5F7FB] text-[#0A1120] text-sm focus:outline-none focus:ring-2 focus:ring-[#1E40AF]/20 focus:border-[#1E40AF] transition-all placeholder:text-[#CBD5E1]"
+                  className="w-full px-4 py-3 pr-12 rounded-xl border border-[#E8ECF2] bg-[#F5F7FB] text-[#0A1120] text-sm focus:outline-none focus:ring-2 focus:ring-[#1E5BB4]/20 focus:border-[#1E5BB4] transition-all placeholder:text-[#CBD5E1]"
                 />
                 <button
                   type="button"
@@ -86,7 +86,7 @@ export default function AdminLogin() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full flex items-center justify-center gap-2 py-3.5 bg-gradient-to-r from-[#1E40AF] to-[#1D4ED8] text-white rounded-xl font-bold text-sm hover:shadow-lg hover:shadow-[#1E40AF]/20 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+              className="w-full flex items-center justify-center gap-2 py-3.5 bg-gradient-to-r from-[#EEA226] to-[#C78114] text-white rounded-xl font-bold text-sm hover:shadow-lg hover:shadow-[#EEA226]/20 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
             >
               {loading ? (
                 <><Loader2 className="w-4 h-4 animate-spin" /> Connexion...</>

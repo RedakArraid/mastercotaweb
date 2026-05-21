@@ -69,11 +69,11 @@ function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
                 href={href}
                 onClick={onClose}
                 className={`
-                  flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all
+                  flex items-center gap-3 py-2.5 pr-3 rounded-r-xl text-sm font-medium transition-all
                   ${
                     isActive
-                      ? "bg-[#1E40AF] text-white shadow-md shadow-[#1E40AF]/30"
-                      : "text-white/45 hover:text-white hover:bg-white/6"
+                      ? "bg-[#1E5BB4]/15 text-[#EEA226] border-l-4 border-[#EEA226] pl-2"
+                      : "text-white/45 hover:text-white hover:bg-white/5 border-l-4 border-transparent pl-3"
                   }
                 `}
               >
@@ -116,14 +116,14 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
 
   if (!ready) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#F0F4F8]">
-        <Loader2 className="w-7 h-7 text-[#1E40AF] animate-spin" />
+      <div className="min-h-screen flex items-center justify-center bg-[#F5F7FB]">
+        <Loader2 className="w-7 h-7 text-[#EEA226] animate-spin" />
       </div>
     );
   }
 
   return (
-    <div className="flex h-screen overflow-hidden bg-[#F0F4F8]">
+    <div className="flex h-screen overflow-hidden bg-[#F5F7FB]">
       <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">

@@ -110,7 +110,7 @@ export default function UsersPage() {
           placeholder="Rechercher par téléphone ou email…"
           value={search}
           onChange={e => setSearch(e.target.value)}
-          className="w-full pl-10 pr-4 py-2.5 text-sm bg-white border border-[#E2E8F0] rounded-xl text-[#0A1120] placeholder:text-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#1E40AF]/20 focus:border-[#1E40AF]/40"
+          className="w-full pl-10 pr-4 py-2.5 text-sm bg-white border border-[#E2E8F0] rounded-xl text-[#0A1120] placeholder:text-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#1E5BB4]/20 focus:border-[#1E5BB4]/40"
         />
       </div>
 
@@ -118,7 +118,7 @@ export default function UsersPage() {
       <div className="bg-white rounded-2xl border border-[#E2E8F0] overflow-hidden shadow-sm">
         {loading ? (
           <div className="flex items-center justify-center py-16">
-            <RefreshCw className="w-6 h-6 text-[#1E40AF] animate-spin" />
+            <RefreshCw className="w-6 h-6 text-[#EEA226] animate-spin" />
           </div>
         ) : !data?.users.length ? (
           <div className="flex flex-col items-center justify-center py-16 text-[#94A3B8]">
@@ -144,8 +144,8 @@ export default function UsersPage() {
                     <tr key={u.id} className="hover:bg-[#F8FAFC] transition-colors">
                       <td className="px-4 py-3.5">
                         <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-full bg-[#EFF6FF] flex items-center justify-center flex-shrink-0">
-                            <User className="w-4 h-4 text-[#1E40AF]" />
+                          <div className="w-8 h-8 rounded-full bg-[#1E5BB4]/10 flex items-center justify-center flex-shrink-0">
+                            <User className="w-4 h-4 text-[#1E5BB4]" />
                           </div>
                           <div>
                             <p className="font-semibold text-[#0A1120]">{u.display}</p>
@@ -181,8 +181,8 @@ export default function UsersPage() {
               {data.users.map(u => (
                 <div key={u.id} className="px-4 py-3.5 space-y-2">
                   <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-full bg-[#EFF6FF] flex items-center justify-center flex-shrink-0">
-                      <User className="w-4 h-4 text-[#1E40AF]" />
+                    <div className="w-9 h-9 rounded-full bg-[#1E5BB4]/10 flex items-center justify-center flex-shrink-0">
+                      <User className="w-4 h-4 text-[#1E5BB4]" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="font-semibold text-[#0A1120] truncate">{u.display}</p>

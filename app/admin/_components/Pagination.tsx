@@ -59,7 +59,7 @@ export function Pagination({ page, totalPages, total, limit, onChange }: Paginat
               className={`
                 w-8 h-8 rounded-lg text-xs font-medium transition-all border
                 ${page === p
-                  ? "bg-[#1E40AF] text-white border-[#1E40AF] shadow-sm shadow-[#1E40AF]/20"
+                  ? "bg-[#1E5BB4] text-white border-[#1E5BB4] shadow-sm shadow-[#1E5BB4]/20"
                   : "text-[#64748B] border-transparent hover:bg-white hover:text-[#0A1120] hover:border-[#E2E8F0]"
                 }
               `}

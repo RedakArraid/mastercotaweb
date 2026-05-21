@@ -54,7 +54,7 @@ function Field({
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
-          className={`w-full py-3 pr-4 rounded-xl border border-[#E8ECF2] bg-[#F5F7FB] text-[#0A1120] text-sm focus:outline-none focus:ring-2 focus:ring-[#1E40AF]/20 focus:border-[#1E40AF] transition-all placeholder:text-[#CBD5E1] ${icon ? "pl-10" : "pl-4"}`}
+          className={`w-full py-3 pr-4 rounded-xl border border-[#E8ECF2] bg-[#F5F7FB] text-[#0A1120] text-sm focus:outline-none focus:ring-2 focus:ring-[#1E5BB4]/20 focus:border-[#1E5BB4] transition-all placeholder:text-[#CBD5E1] ${icon ? "pl-10" : "pl-4"}`}
         />
       </div>
     </div>
@@ -82,7 +82,7 @@ function DocCard({
           <p className="font-semibold text-[#0A1120] text-sm leading-snug">{title}</p>
           <p className="text-xs text-[#94A3B8] mt-1">{subtitle}</p>
         </div>
-        <div className="w-10 h-10 rounded-xl bg-[#EFF6FF] text-[#1E40AF] flex items-center justify-center flex-shrink-0">
+        <div className="w-10 h-10 rounded-xl bg-[#1E5BB4]/10 text-[#1E5BB4] flex items-center justify-center flex-shrink-0">
           <FileText className="w-5 h-5" />
         </div>
       </div>
@@ -95,7 +95,7 @@ function DocCard({
             href={currentUrl}
             target="_blank"
             rel="noreferrer"
-            className="flex items-center gap-1 text-xs text-[#1E40AF] font-bold hover:underline whitespace-nowrap"
+            className="flex items-center gap-1 text-xs text-[#1E5BB4] font-bold hover:underline whitespace-nowrap"
           >
             Voir <ExternalLink className="w-3 h-3" />
           </a>
@@ -121,7 +121,7 @@ function DocCard({
       <button
         onClick={() => inputRef.current?.click()}
         disabled={isUploading}
-        className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border-2 border-dashed border-[#BFDBFE] text-[#1E40AF] bg-[#EFF6FF]/50 text-sm font-semibold hover:bg-[#EFF6FF] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border-2 border-dashed border-[#1E5BB4]/30 text-[#1E5BB4] bg-[#1E5BB4]/5 text-sm font-semibold hover:bg-[#1E5BB4]/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
       >
         {isUploading ? (
           <><Loader2 className="w-4 h-4 animate-spin" />Upload en cours...</>
@@ -248,7 +248,7 @@ export default function AdminPage() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#F5F7FB]">
-        <Loader2 className="w-8 h-8 text-[#1E40AF] animate-spin" />
+        <Loader2 className="w-8 h-8 text-[#EEA226] animate-spin" />
       </div>
     );
   }
@@ -327,7 +327,7 @@ export default function AdminPage() {
               onClick={() => setTab(t.id)}
               className={`flex-1 min-w-max px-4 py-2.5 rounded-xl text-sm font-semibold transition-all whitespace-nowrap ${
                 tab === t.id
-                  ? "bg-[#1E40AF] text-white shadow-sm"
+                  ? "bg-[#1E5BB4] text-white shadow-sm"
                   : "text-[#64748B] hover:text-[#0A1120] hover:bg-[#F5F7FB]"
               }`}
             >
@@ -454,7 +454,7 @@ export default function AdminPage() {
               <button
                 onClick={handleSave}
                 disabled={saving}
-                className="w-full flex items-center justify-center gap-2 py-3.5 bg-gradient-to-r from-[#1E40AF] to-[#1D4ED8] text-white rounded-xl text-sm font-bold hover:shadow-lg hover:shadow-[#1E40AF]/20 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+                className="w-full flex items-center justify-center gap-2 py-3.5 bg-gradient-to-r from-[#EEA226] to-[#C78114] text-white rounded-xl text-sm font-bold hover:shadow-lg hover:shadow-[#EEA226]/20 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 {saving ? (
                   <><Loader2 className="w-4 h-4 animate-spin" />Sauvegarde...</>

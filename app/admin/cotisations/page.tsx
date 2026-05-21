@@ -44,7 +44,7 @@ function fmtDate(iso: string | null) {
 function StatusBadge({ status }: { status: string }) {
   const map: Record<string, { label: string; cls: string }> = {
     active:    { label: "Active",    cls: "bg-green-50  text-green-700  border-green-100" },
-    completed: { label: "Complétée", cls: "bg-blue-50   text-blue-700   border-blue-100" },
+    completed: { label: "Complétée", cls: "bg-[#1E5BB4]/5   text-[#1E5BB4]   border-[#1E5BB4]/10" },
     closed:    { label: "Fermée",    cls: "bg-slate-50  text-slate-500  border-slate-200" },
     draft:     { label: "Brouillon", cls: "bg-amber-50  text-amber-700  border-amber-100" },
   };
@@ -125,7 +125,7 @@ export default function CotisationsPage() {
             placeholder="Rechercher par titre, slug ou propriétaire…"
             value={search}
             onChange={e => setSearch(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 text-sm bg-white border border-[#E2E8F0] rounded-xl text-[#0A1120] placeholder:text-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#1E40AF]/20 focus:border-[#1E40AF]/40"
+            className="w-full pl-10 pr-4 py-2.5 text-sm bg-white border border-[#E2E8F0] rounded-xl text-[#0A1120] placeholder:text-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#1E5BB4]/20 focus:border-[#1E5BB4]/40"
           />
         </div>
         <div className="flex items-center gap-2 bg-white border border-[#E2E8F0] rounded-xl px-3 py-2.5 text-sm shrink-0">
@@ -146,7 +146,7 @@ export default function CotisationsPage() {
       <div className="bg-white rounded-2xl border border-[#E2E8F0] overflow-hidden shadow-sm">
         {loading ? (
           <div className="flex items-center justify-center py-16">
-            <RefreshCw className="w-6 h-6 text-[#1E40AF] animate-spin" />
+            <RefreshCw className="w-6 h-6 text-[#EEA226] animate-spin" />
           </div>
         ) : !data?.cotisations.length ? (
           <div className="flex flex-col items-center justify-center py-16 text-[#94A3B8]">
@@ -181,7 +181,7 @@ export default function CotisationsPage() {
                             href={`https://mastercota.com/c/${c.slug}`}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="opacity-0 group-hover:opacity-100 transition-opacity text-[#94A3B8] hover:text-[#1E40AF]"
+                            className="opacity-0 group-hover:opacity-100 transition-opacity text-[#94A3B8] hover:text-[#1E5BB4]"
                           >
                             <ExternalLink className="w-3.5 h-3.5" />
                           </a>
@@ -197,7 +197,7 @@ export default function CotisationsPage() {
                           </div>
                           <div className="h-1.5 bg-[#F1F5F9] rounded-full overflow-hidden">
                             <div
-                              className="h-full rounded-full bg-gradient-to-r from-[#1E40AF] to-[#3B82F6] transition-all"
+                              className="h-full rounded-full bg-gradient-to-r from-[#EEA226] to-[#1E5BB4] transition-all"
                               style={{ width: `${Math.min(c.progress, 100)}%` }}
                             />
                           </div>
@@ -237,7 +237,7 @@ export default function CotisationsPage() {
                     </div>
                     <div className="h-2 bg-[#F1F5F9] rounded-full overflow-hidden">
                       <div
-                        className="h-full rounded-full bg-gradient-to-r from-[#1E40AF] to-[#3B82F6]"
+                        className="h-full rounded-full bg-gradient-to-r from-[#EEA226] to-[#1E5BB4]"
                         style={{ width: `${Math.min(c.progress, 100)}%` }}
                       />
                     </div>
