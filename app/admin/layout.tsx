@@ -108,11 +108,17 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!session) router.replace("/admin/login");
-      else setReady(true);
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!session) {
+        setReady(false);
+        router.replace("/admin/login");
+      } else {
+        setReady(true);
+      }
     });
-  }, [router]);
+    return () => subscription.unsubscribe();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   if (!ready) {
     return (

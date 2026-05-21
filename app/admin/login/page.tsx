@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { supabase } from "@/lib/supabase";
 import { Loader2, Eye, EyeOff } from "lucide-react";
 
@@ -26,7 +27,7 @@ export default function AdminLogin() {
           : authError.message
       );
     } else {
-      router.replace("/admin");
+      router.replace("/admin/dashboard");
     }
   }
 
@@ -34,8 +35,8 @@ export default function AdminLogin() {
     <div className="min-h-screen flex items-center justify-center bg-[#F5F7FB] px-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#EEA226] to-[#C78114] flex items-center justify-center shadow-xl shadow-[#EEA226]/20 mx-auto mb-4">
-            <span className="text-white font-extrabold text-2xl leading-none">₣</span>
+          <div className="w-16 h-16 rounded-2xl overflow-hidden mx-auto mb-4 shadow-xl shadow-[#0A1120]/15">
+            <Image src="/app_icon.png" alt="Mastercota" width={64} height={64} className="w-full h-full object-cover" />
           </div>
           <h1 className="text-2xl font-extrabold text-[#0A1120]">Mastercota Admin</h1>
           <p className="text-sm text-[#64748B] mt-1">Espace réservé aux administrateurs</p>
