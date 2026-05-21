@@ -32,6 +32,22 @@ export interface Cotisation {
   settings: CotisationSettings;
 }
 
+export interface SiteConfig {
+  id: number;
+  phone_whatsapp: string;
+  email_contact: string;
+  email_support: string;
+  social_instagram: string;
+  social_facebook: string;
+  social_twitter: string;
+  social_tiktok: string;
+  social_youtube: string;
+  doc_cgu_url: string;
+  doc_privacy_url: string;
+  doc_mentions_url: string;
+  updated_at: string;
+}
+
 export interface Contribution {
   id: string;
   cotisation_id: string;

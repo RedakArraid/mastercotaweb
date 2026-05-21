@@ -1,7 +1,8 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
+import { supabase } from "@/lib/supabase";
 import {
   Shield,
   ArrowRight,
@@ -23,6 +24,20 @@ const scrollTo = (id: string) =>
   document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
 
 export default function Home() {
+  const [siteConfig, setSiteConfig] = useState<{
+    email_support: string;
+    doc_cgu_url: string;
+    doc_mentions_url: string;
+  } | null>(null);
+
+  useEffect(() => {
+    supabase
+      .from("site_config")
+      .select("email_support, doc_cgu_url, doc_mentions_url")
+      .eq("id", 1)
+      .single()
+      .then(({ data }) => { if (data) setSiteConfig(data); });
+  }, []);
   return (
     <div className="flex flex-col min-h-screen bg-[#F5F7FB] text-[#0A1120] font-sans selection:bg-brand-gold/30 selection:text-brand-gold-dark">
 
@@ -440,9 +455,21 @@ export default function Home() {
           <p>© {new Date().getFullYear()} Mastercota. Tous droits réservés. Plus simple de cotiser.</p>
 
           <div className="flex gap-4">
-            <a href="/cgu" className="hover:text-brand-blue transition-colors">CGU & Mentions</a>
+            <a
+              href={siteConfig?.doc_cgu_url || siteConfig?.doc_mentions_url || "/cgu"}
+              target={siteConfig?.doc_cgu_url || siteConfig?.doc_mentions_url ? "_blank" : undefined}
+              rel="noreferrer"
+              className="hover:text-brand-blue transition-colors"
+            >
+              CGU & Mentions
+            </a>
             <span>•</span>
-            <a href="mailto:support@mastercota.com" className="hover:text-brand-blue transition-colors">Support</a>
+            <a
+              href={`mailto:${siteConfig?.email_support || "support@mastercota.com"}`}
+              className="hover:text-brand-blue transition-colors"
+            >
+              Support
+            </a>
           </div>
         </div>
       </footer>
