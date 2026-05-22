@@ -51,7 +51,6 @@ export default function Home() {
         <div style={{ maxWidth: 1280, margin: "0 auto" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 56 }}>
             <span className="eyebrow">N° 001 — Cagnottes collectives</span>
-            <span className="eyebrow">Abidjan · Dakar · Yaoundé</span>
           </div>
 
           <h1 style={{
@@ -115,7 +114,7 @@ export default function Home() {
             </p>
             <ul style={{ listStyle: "none", padding: 0, margin: "32px 0 0", display: "grid", gap: 14 }}>
               {[
-                "Mobile Money — Wave, Orange, MTN, Moov",
+                "Mobile Money — Wave, Orange, MTN",
                 "Visa & Mastercard pour la diaspora",
                 "Reversement automatique au créateur",
                 "Page publique mise à jour en temps réel",
