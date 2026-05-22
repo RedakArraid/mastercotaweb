@@ -3,762 +3,522 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
-import { 
-  Shield,
-  Calendar,
-  Users,
-  Loader2,
-  AlertCircle,
-  CheckCircle,
-  Copy,
-  Smartphone,
-  ChevronLeft,
-  ArrowLeftRight,
-} from "lucide-react";
+import { Loader2 } from "lucide-react";
 
-// Types
 import { Cotisation, Contribution } from "@/lib/supabase";
 
-// Colors/Gradients to match the Flutter AppColors
-const CARD_GRADIENTS = [
-  ["from-[#1E3C72]", "to-[#2A5298]"], // Royal Blue
-  ["from-[#3A6073]", "to-[#52788C]"], // Muted Teal
-  ["from-[#4A00E0]", "to-[#8E2DE2]"], // Purple Indigo
-  ["from-[#1F4037]", "to-[#387A65]"], // Emerald Pine
-  ["from-[#0F2027]", "to-[#2C5364]"], // Slate Navy
-  ["from-[#D38312]", "to-[#A83279]"], // Gold Magenta
-  ["from-[#800080]", "to-[#FF007F]"], // Violet Rose
-  ["from-[#13223F]", "to-[#1F355E]"], // Glass Navy
-];
-
-// Presets for West African region (FCFA)
-const PRESET_AMOUNTS = [1000, 2000, 5000, 10000, 25000, 50000];
-
-// Math calculations
+// ── Fee calculations (unchanged) ──────────────────────────────────
 const PAYSTACK_RATE = 0.015;
-const PAYSTACK_CAP = 2000; // FCFA
+const PAYSTACK_CAP  = 2000;
 const PLATFORM_RATE = 0.01;
 
-function calcPaystackFee(gross: number): number {
-  return Math.min(gross * PAYSTACK_RATE, PAYSTACK_CAP);
-}
-
-function calcPlatformFee(gross: number): number {
-  return gross * PLATFORM_RATE;
-}
-
-function calcNet(gross: number): number {
-  return gross - calcPaystackFee(gross) - calcPlatformFee(gross);
-}
-
-function grossFromNet(net: number): number {
-  const threshold = PAYSTACK_CAP / PAYSTACK_RATE; // 133333 FCFA
-  const gross1 = net / (1 - PAYSTACK_RATE - PLATFORM_RATE);
-  if (gross1 < threshold) return gross1;
+function calcPaystackFee(gross: number) { return Math.min(gross * PAYSTACK_RATE, PAYSTACK_CAP); }
+function calcPlatformFee(gross: number) { return gross * PLATFORM_RATE; }
+function calcNet(gross: number)         { return gross - calcPaystackFee(gross) - calcPlatformFee(gross); }
+function grossFromNet(net: number) {
+  const threshold = PAYSTACK_CAP / PAYSTACK_RATE;
+  const g1 = net / (1 - PAYSTACK_RATE - PLATFORM_RATE);
+  if (g1 < threshold) return g1;
   return (net + PAYSTACK_CAP) / (1 - PLATFORM_RATE);
 }
 
-function hashCode(str: string): number {
-  let hash = 0;
-  for (let i = 0; i < str.length; i++) {
-    hash = str.charCodeAt(i) + ((hash << 5) - hash);
-  }
-  return Math.abs(hash);
+const PRESET_AMOUNTS = [1000, 2000, 5000, 10000, 25000, 50000];
+
+function fmt(n: number) { return new Intl.NumberFormat("fr-FR").format(Math.round(n)); }
+
+function daysLeft(deadlineStr: string) {
+  const d = new Date(deadlineStr); const t = new Date();
+  d.setHours(0,0,0,0); t.setHours(0,0,0,0);
+  return Math.ceil((d.getTime() - t.getTime()) / 86400000);
 }
 
+// ── Shared tiny components ─────────────────────────────────────────
+function Eyebrow({ children, style = {} }: { children: React.ReactNode; style?: React.CSSProperties }) {
+  return <span className="eyebrow" style={style}>{children}</span>;
+}
+
+function FeeRow({ label, value, muted, bold }: { label: string; value: string; muted?: boolean; bold?: boolean }) {
+  return (
+    <div style={{ display: "flex", justifyContent: "space-between" }}>
+      <span style={{ color: muted ? "var(--ink-3)" : "var(--ink-2)" }}>{label}</span>
+      <span className="num" style={{ color: muted ? "var(--ink-3)" : "var(--ink)", fontWeight: bold ? 500 : 400 }}>{value}</span>
+    </div>
+  );
+}
+
+// ── Page ──────────────────────────────────────────────────────────
 export default function CotisationPublicPage() {
-  const params = useParams();
-  const router = useRouter();
-  const slug = params.slug as string;
+  const params   = useParams();
+  const router   = useRouter();
+  const slug     = params.slug as string;
 
-  // State
-  const [cotisation, setCotisation] = useState<Cotisation | null>(null);
+  // ── Data state ──
+  const [cotisation,    setCotisation]    = useState<Cotisation | null>(null);
   const [contributions, setContributions] = useState<Contribution[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
+  const [loading,       setLoading]       = useState(true);
+  const [error,         setError]         = useState<string | null>(null);
 
-  // Form State
-  const [grossInput, setGrossInput] = useState<string>("");
-  const [netInput, setNetInput] = useState<string>("");
-  const [contributorName, setContributorName] = useState<string>("");
-  const [contributorPhone, setContributorPhone] = useState<string>("");
-  const [anonymous, setAnonymous] = useState<boolean>(false);
-  
-  // Payment Status State
-  const [submitting, setSubmitting] = useState<boolean>(false);
-  const [paymentInitiated, setPaymentInitiated] = useState<boolean>(false);
-  const [checkoutUrl, setCheckoutUrl] = useState<string>("");
-  const [copiedLink, setCopiedLink] = useState<boolean>(false);
+  // ── Form state ──
+  const [grossInput,       setGrossInput]       = useState("5000");
+  const [netInput,         setNetInput]         = useState("");
+  const [contributorName,  setContributorName]  = useState("");
+  const [contributorPhone, setContributorPhone] = useState("");
+  const [anonymous,        setAnonymous]        = useState(false);
 
-  // Fetch Cotisation and Contributions
+  // ── Payment state ──
+  const [submitting,        setSubmitting]        = useState(false);
+  const [paymentInitiated,  setPaymentInitiated]  = useState(false);
+  const [checkoutUrl,       setCheckoutUrl]       = useState("");
+  const [copiedLink,        setCopiedLink]        = useState(false);
+  const [showAll,           setShowAll]           = useState(false);
+
+  // ── Fetch + realtime (unchanged logic) ──
   useEffect(() => {
     if (!slug) return;
-
-    async function fetchInitialData() {
+    async function init() {
       try {
         setLoading(true);
-        // 1. Fetch Cotisation by slug
-        const { data: cotData, error: cotError } = await supabase
-          .from("cotisations")
-          .select("*")
-          .eq("slug", slug)
-          .maybeSingle();
-
-        if (cotError) throw cotError;
-        if (!cotData) {
-          setCotisation(null);
-          setLoading(false);
-          return;
-        }
-
+        const { data: cotData, error: cotErr } = await supabase
+          .from("cotisations").select("*").eq("slug", slug).maybeSingle();
+        if (cotErr) throw cotErr;
+        if (!cotData) { setCotisation(null); setLoading(false); return; }
         setCotisation(cotData as Cotisation);
 
-        // 2. Fetch Contributions (only 'paid' status for public visibility)
-        const { data: contrData, error: contrError } = await supabase
-          .from("contributions")
-          .select("*")
-          .eq("cotisation_id", cotData.id)
-          .eq("status", "paid")
+        const { data: contrData, error: contrErr } = await supabase
+          .from("contributions").select("*")
+          .eq("cotisation_id", cotData.id).eq("status", "paid")
           .order("created_at", { ascending: false });
-
-        if (contrError) throw contrError;
+        if (contrErr) throw contrErr;
         setContributions(contrData as Contribution[]);
         setLoading(false);
 
-        // 3. Subscribe to Realtime Updates
-        const cotisationChannel = supabase
-          .channel(`public-cotisation-${cotData.id}`)
-          .on(
-            "postgres_changes",
-            {
-              event: "UPDATE",
-              schema: "public",
-              table: "cotisations",
-              filter: `id=eq.${cotData.id}`,
-            },
-            (payload) => {
-              setCotisation(payload.new as Cotisation);
-            }
-          )
+        const cotCh = supabase.channel(`pub-cot-${cotData.id}`)
+          .on("postgres_changes", { event: "UPDATE", schema: "public", table: "cotisations", filter: `id=eq.${cotData.id}` },
+            (p) => setCotisation(p.new as Cotisation))
           .subscribe();
 
-        const contributionsChannel = supabase
-          .channel(`public-contributions-${cotData.id}`)
-          .on(
-            "postgres_changes",
-            {
-              event: "*",
-              schema: "public",
-              table: "contributions",
-              filter: `cotisation_id=eq.${cotData.id}`,
-            },
+        const contrCh = supabase.channel(`pub-contr-${cotData.id}`)
+          .on("postgres_changes", { event: "*", schema: "public", table: "contributions", filter: `cotisation_id=eq.${cotData.id}` },
             async () => {
-              // Re-fetch contributions list to ensure security policy compliance
-              const { data: refetchedContr } = await supabase
-                .from("contributions")
-                .select("*")
-                .eq("cotisation_id", cotData.id)
-                .eq("status", "paid")
+              const { data: r } = await supabase.from("contributions").select("*")
+                .eq("cotisation_id", cotData.id).eq("status", "paid")
                 .order("created_at", { ascending: false });
-              
-              if (refetchedContr) {
-                setContributions(refetchedContr as Contribution[]);
-              }
-            }
-          )
+              if (r) setContributions(r as Contribution[]);
+            })
           .subscribe();
 
-        return () => {
-          supabase.removeChannel(cotisationChannel);
-          supabase.removeChannel(contributionsChannel);
-        };
-
-      } catch (err: any) {
-        console.error("Error fetching data:", err);
-        setError(err.message || "Impossible de charger la cotisation.");
+        return () => { supabase.removeChannel(cotCh); supabase.removeChannel(contrCh); };
+      } catch (e: any) {
+        setError(e.message || "Impossible de charger la cotisation.");
         setLoading(false);
       }
     }
-
-    fetchInitialData();
+    init();
   }, [slug]);
 
-  // Calculations (always derived from gross)
-  const calculatedFees = useMemo(() => {
+  // Sync gross → net on mount
+  useEffect(() => {
+    const g = parseFloat(grossInput) || 0;
+    if (g > 0) setNetInput(calcNet(g).toFixed(0));
+  }, []);
+
+  const fees = useMemo(() => {
     const gross = parseFloat(grossInput) || 0;
     if (gross <= 0) return { gross: 0, net: 0, paystackFee: 0, platformFee: 0 };
-    const paystackFee = calcPaystackFee(gross);
-    const platformFee = calcPlatformFee(gross);
-    const net = calcNet(gross);
-    return { gross, net, paystackFee, platformFee };
+    return { gross, net: calcNet(gross), paystackFee: calcPaystackFee(gross), platformFee: calcPlatformFee(gross) };
   }, [grossInput]);
 
-  // Sync handlers
   function handleGrossChange(val: string) {
     setGrossInput(val);
-    const gross = parseFloat(val) || 0;
-    setNetInput(gross > 0 ? calcNet(gross).toFixed(0) : "");
+    const g = parseFloat(val) || 0;
+    setNetInput(g > 0 ? calcNet(g).toFixed(0) : "");
   }
-
   function handleNetChange(val: string) {
     setNetInput(val);
-    const net = parseFloat(val) || 0;
-    setGrossInput(net > 0 ? grossFromNet(net).toFixed(0) : "");
+    const n = parseFloat(val) || 0;
+    setGrossInput(n > 0 ? grossFromNet(n).toFixed(0) : "");
   }
 
-  // Preset click handler
-  const handlePresetClick = (amount: number) => {
-    handleGrossChange(amount.toString());
-  };
-
-  // Payment Handler
-  const handlePay = async (e: React.FormEvent) => {
+  async function handlePay(e: React.FormEvent) {
     e.preventDefault();
-    if (!cotisation) return;
-
-    if (!grossInput || parseFloat(grossInput) <= 0) {
-      alert("Veuillez entrer un montant valide.");
-      return;
+    if (!cotisation || !grossInput || parseFloat(grossInput) <= 0) {
+      alert("Veuillez entrer un montant valide."); return;
     }
-
-    const minAmount = cotisation.settings?.min_amount || 0;
-    const finalAmount = calculatedFees.gross;
-    const netAmount = calculatedFees.net;
-
-    if (minAmount > 0 && netAmount < minAmount) {
-      alert(`Le montant net de contribution doit être d'au moins ${minAmount} FCFA.`);
-      return;
+    const min = cotisation.settings?.min_amount || 0;
+    if (min > 0 && fees.net < min) {
+      alert(`Le montant net doit être d'au moins ${min} FCFA.`); return;
     }
-
-    if (!contributorPhone) {
-      alert("Veuillez saisir votre numéro de téléphone.");
-      return;
-    }
-
+    if (!contributorPhone) { alert("Veuillez saisir votre numéro de téléphone."); return; }
     const name = anonymous ? "Anonyme" : (contributorName.trim() || "Anonyme");
-
     try {
       setSubmitting(true);
-      // Invoke Paystack initialize supabase Edge Function
-      const { data, error: fnError } = await supabase.functions.invoke("paystack-initialize", {
-        body: {
-          cotisation_id: cotisation.id,
-          amount: finalAmount, // Gross amount sent to paystack
-          contributor_name: name,
-          contributor_phone: contributorPhone.trim(),
-        },
+      const { data, error: fnErr } = await supabase.functions.invoke("paystack-initialize", {
+        body: { cotisation_id: cotisation.id, amount: fees.gross, contributor_name: name, contributor_phone: contributorPhone.trim() },
       });
-
-      if (fnError) throw fnError;
-      if (!data || !data.authorization_url) {
-        throw new Error("L'initialisation de la transaction a échoué.");
-      }
-
+      if (fnErr) throw fnErr;
+      if (!data?.authorization_url) throw new Error("Initialisation de la transaction échouée.");
       setCheckoutUrl(data.authorization_url);
       setPaymentInitiated(true);
-      
-      // Open Paystack Checkout url in a new tab
       window.open(data.authorization_url, "_blank");
-
-    } catch (err: any) {
-      console.error("Payment initialization error:", err);
-      alert(`Erreur de paiement : ${err.message || "Une erreur inconnue est survenue."}`);
+    } catch (e: any) {
+      alert(`Erreur de paiement : ${e.message || "Erreur inconnue."}`);
     } finally {
       setSubmitting(false);
     }
-  };
+  }
 
-  // Copy share link
-  const handleCopyLink = () => {
-    const link = `${window.location.origin}/c/${slug}`;
-    navigator.clipboard.writeText(link);
+  function handleCopyLink() {
+    navigator.clipboard.writeText(`${window.location.origin}/c/${slug}`);
     setCopiedLink(true);
     setTimeout(() => setCopiedLink(false), 2000);
-  };
-
-  // Formatting helpers
-  const formatMoney = (amount: number) => {
-    return new Intl.NumberFormat("fr-FR").format(Math.round(amount));
-  };
-
-  const getDaysRemaining = (deadlineStr: string) => {
-    const deadline = new Date(deadlineStr);
-    const today = new Date();
-    // Reset hours to calculate precise days
-    deadline.setHours(0,0,0,0);
-    today.setHours(0,0,0,0);
-    const diffTime = deadline.getTime() - today.getTime();
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    return diffDays;
-  };
-
-  // Loading Screen
-  if (loading) {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-[#F5F7FB]">
-        <Loader2 className="w-10 h-10 text-brand-gold animate-spin mb-4" />
-        <p className="text-text-secondary font-medium animate-pulse">Chargement de la cotisation...</p>
-      </div>
-    );
   }
 
-  // Not Found Screen
-  if (error || !cotisation) {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-[#F5F7FB] px-6 text-center">
-        <AlertCircle className="w-16 h-16 text-error mb-4" />
-        <h1 className="text-2xl font-black text-text-primary mb-2">Cotisation introuvable</h1>
-        <p className="text-text-secondary max-w-md mb-8">
-          Le lien que vous avez suivi est peut-être incorrect ou la cotisation a été supprimée par son créateur.
-        </p>
-        <button 
-          onClick={() => router.push("/")}
-          className="px-6 py-3 bg-brand-blue hover:bg-brand-blue-dark text-white font-semibold rounded-xl shadow-md transition-all flex items-center gap-2"
-        >
-          <ChevronLeft className="w-5 h-5" />
-          Retour à l'accueil
-        </button>
-      </div>
-    );
-  }
+  // ── Loading ──
+  if (loading) return (
+    <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "var(--cream)" }}>
+      <Loader2 style={{ width: 32, height: 32, color: "var(--accent)", animation: "spin 1s linear infinite" }} />
+    </div>
+  );
 
-  // Computed Values
-  const gradient = CARD_GRADIENTS[hashCode(slug) % CARD_GRADIENTS.length];
-  const daysLeft = getDaysRemaining(cotisation.deadline);
-  
-  // Progress Percent calculation
-  const progressPercent = cotisation.target_amount > 0 
-    ? Math.min((cotisation.current_amount / cotisation.target_amount) * 100, 100) 
-    : 0;
+  // ── Not found ──
+  if (error || !cotisation) return (
+    <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", background: "var(--cream)", padding: 32, textAlign: "center" }}>
+      <div style={{ fontSize: 48, marginBottom: 16 }}>🔍</div>
+      <h1 style={{ fontSize: 28, fontWeight: 500, margin: "0 0 12px" }}>Cotisation introuvable</h1>
+      <p style={{ color: "var(--ink-3)", maxWidth: 400, lineHeight: 1.55, marginBottom: 32 }}>
+        Le lien que vous avez suivi est peut-être incorrect ou la cotisation a été supprimée.
+      </p>
+      <button className="btn btn-primary" onClick={() => router.push("/")}>← Retour à l'accueil</button>
+    </div>
+  );
 
-  const isCompleted = cotisation.status === "completed" || progressPercent >= 100;
-  const isClosed = cotisation.status === "closed" || (daysLeft < 0 && !isCompleted);
-  const isActive = !isClosed && !isCompleted;
-
-  // Best contributor computation
-  const bestContributor = contributions.length > 0
-    ? contributions.reduce((prev, current) => (prev.amount >= current.amount) ? prev : current)
-    : null;
+  // ── Computed values ──
+  const days        = daysLeft(cotisation.deadline);
+  const pct         = cotisation.target_amount > 0
+    ? Math.min((cotisation.current_amount / cotisation.target_amount) * 100, 100) : 0;
+  const isCompleted = cotisation.status === "completed" || pct >= 100;
+  const isClosed    = cotisation.status === "closed" || (days < 0 && !isCompleted);
+  const isActive    = !isClosed && !isCompleted;
+  const best        = contributions.length > 0 ? contributions.reduce((p, c) => (p.amount >= c.amount ? p : c)) : null;
+  const visibleContr = showAll ? contributions : contributions.slice(0, 8);
+  const openDate    = new Date(cotisation.created_at).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" });
+  const closeDate   = new Date(cotisation.deadline).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" });
 
   return (
-    <div className="min-h-screen bg-[#F5F7FB] text-[#0A1120] font-sans pb-20 selection:bg-brand-gold/30 selection:text-brand-gold-dark">
-      
-      {/* ── TOP NAV BAR ───────────────────────────────────────────── */}
-      <div className="max-w-3xl mx-auto px-4 pt-6 pb-2">
-        <button 
-          onClick={() => router.push("/")}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-text-secondary hover:text-brand-blue hover:bg-white transition-all border border-transparent hover:border-app-border"
-        >
-          <ChevronLeft className="w-4 h-4" />
-          Mastercota
-        </button>
-      </div>
+    <div style={{ background: "var(--cream)", color: "var(--ink)", minHeight: "100vh" }}>
 
-      {/* ── MAIN CONTENT CONTAINER ────────────────────────────────── */}
-      <main className="max-w-3xl mx-auto px-4 space-y-6">
-        
-        {/* ── HERO BANNER CARD ────────────────────────────────────── */}
-        <div className={`rounded-3xl bg-gradient-to-br ${gradient[0]} ${gradient[1]} text-white p-6 md:p-8 relative overflow-hidden shadow-xl`}>
-          {/* Decorative Background Circles */}
-          <div className="absolute -top-12 -right-12 w-48 h-48 bg-white/5 rounded-full pointer-events-none" />
-          <div className="absolute -bottom-8 -left-8 w-32 h-32 bg-white/5 rounded-full pointer-events-none" />
-
-          <div className="space-y-6 relative z-10">
-            <div className="flex items-center gap-2">
-              <div className="px-3 py-1 rounded-full bg-white/20 border border-white/20 text-[10px] md:text-xs font-bold uppercase tracking-wider inline-flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-brand-gold animate-ping" />
-                Cagnotte Collective
-              </div>
-            </div>
-
-            <div className="space-y-3">
-              <h1 className="text-2xl md:text-4xl font-extrabold leading-tight tracking-tight">
-                {cotisation.title}
-              </h1>
-              {cotisation.description && (
-                <p className="text-white/85 text-sm md:text-base leading-relaxed font-normal max-w-2xl">
-                  {cotisation.description}
-                </p>
-              )}
-            </div>
-          </div>
+      {/* ── Sticky header ── */}
+      <header style={{
+        position: "sticky", top: 0, zIndex: 40,
+        display: "flex", alignItems: "center", justifyContent: "space-between",
+        padding: "20px 48px", borderBottom: "1px solid var(--line-soft)",
+        background: "rgba(255,255,255,0.90)", backdropFilter: "blur(12px)"
+      }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+          <img src="/design/assets/logo-icon.png" alt="MasterCota" style={{ height: 28, width: "auto" }} />
+          <button onClick={() => router.push("/")} style={{
+            background: "none", border: "none", color: "var(--ink-3)", fontSize: 13, cursor: "pointer", padding: 0
+          }}>← retour</button>
         </div>
-
-        {/* ── METRICS & PROGRESS SECTION ──────────────────────────── */}
-        {cotisation.settings?.show_progress && (
-          <div className="bg-white rounded-3xl p-6 border border-app-border shadow-sm space-y-5">
-            <div className="flex justify-between items-end">
-              <div>
-                <span className="text-xs font-bold text-text-tertiary uppercase tracking-wider block mb-1">
-                  Montant collecté
-                </span>
-                <span className="text-2xl md:text-3xl font-black text-brand-gold">
-                  {formatMoney(cotisation.current_amount)} <span className="text-sm font-bold text-text-secondary">FCFA</span>
-                </span>
-              </div>
-
-              {cotisation.settings?.show_target_amount && (
-                <div className="text-right">
-                  <span className="text-xs font-bold text-text-tertiary uppercase tracking-wider block mb-1">
-                    Objectif cible
-                  </span>
-                  <span className="text-lg md:text-xl font-bold text-text-primary">
-                    {formatMoney(cotisation.target_amount)} <span className="text-xs font-semibold text-text-secondary">FCFA</span>
-                  </span>
-                </div>
-              )}
-            </div>
-
-            {/* Progress Bar */}
-            <div className="space-y-2">
-              <div className="w-full bg-app-border-light h-3.5 rounded-full overflow-hidden border border-app-border/40">
-                <div 
-                  className={`h-full rounded-full transition-all duration-1000 ease-out bg-gradient-to-r ${isCompleted ? "from-success to-emerald-400" : "from-brand-gold to-amber-500"}`}
-                  style={{ width: `${progressPercent}%` }}
-                />
-              </div>
-              <div className="flex justify-between items-center text-xs font-bold text-text-secondary">
-                <span>{progressPercent.toFixed(0)}% de l'objectif</span>
-                
-                {isCompleted ? (
-                  <span className="text-success flex items-center gap-1">
-                    <CheckCircle className="w-3.5 h-3.5" />
-                    Objectif atteint ! 🎉
-                  </span>
-                ) : isClosed ? (
-                  <span className="text-error">Clôturée</span>
-                ) : (
-                  <span className="flex items-center gap-1 font-semibold text-text-secondary">
-                    <Calendar className="w-3.5 h-3.5 text-text-tertiary" />
-                    {daysLeft > 0 ? `${daysLeft} jour${daysLeft > 1 ? "s" : ""} restant${daysLeft > 1 ? "s" : ""}` : "Dernier jour"}
-                  </span>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* ── BEST CONTRIBUTOR CARD ──────────────────────────────── */}
-        {cotisation.settings?.show_best_contributor && bestContributor && (
-          <div className="bg-gradient-to-br from-amber-50/50 to-orange-50/30 rounded-3xl p-5 border border-amber-200/60 shadow-sm flex items-center gap-4">
-            <div className="w-12 h-12 rounded-2xl bg-amber-100 border border-amber-200/50 flex items-center justify-center text-2xl shadow-inner">
-              🏆
-            </div>
-            <div className="flex-1 min-w-0">
-              <span className="text-[10px] font-bold text-brand-gold-dark uppercase tracking-wider block mb-0.5">
-                Meilleur contributeur
-              </span>
-              <span className="font-extrabold text-text-primary text-base block truncate">
-                {bestContributor.contributor_name || "Anonyme"}
-              </span>
-            </div>
-            <div className="text-right">
-              <span className="text-sm font-black text-brand-gold-dark">
-                {formatMoney(bestContributor.amount)} FCFA
-              </span>
-            </div>
-          </div>
-        )}
-
-        {/* ── RECENT CONTRIBUTORS PREVIEW ────────────────────────── */}
-        {cotisation.settings?.show_contributors && contributions.length > 0 && (
-          <div className="bg-white rounded-3xl p-6 border border-app-border shadow-sm space-y-4">
-            <div className="flex items-center gap-2 border-b border-app-border/40 pb-3">
-              <Users className="w-5 h-5 text-brand-blue" />
-              <h3 className="font-extrabold text-text-primary text-base">
-                Contributeurs ({contributions.length})
-              </h3>
-            </div>
-
-            <div className="divide-y divide-app-border/40">
-              {contributions.slice(0, 5).map((contr, idx) => {
-                const initial = contr.contributor_name ? contr.contributor_name[0].toUpperCase() : "?";
-                const gradIndex = hashCode(contr.contributor_name || "") % CARD_GRADIENTS.length;
-                const grad = CARD_GRADIENTS[gradIndex];
-
-                return (
-                  <div key={contr.id} className={`flex items-center justify-between py-3 ${idx === 0 ? "pt-0" : ""}`}>
-                    <div className="flex items-center gap-3">
-                      <div className={`w-9 h-9 rounded-xl bg-gradient-to-br ${grad[0]} ${grad[1]} flex items-center justify-center text-white text-sm font-extrabold shadow-sm`}>
-                        {initial}
-                      </div>
-                      <div>
-                        <span className="font-bold text-text-primary text-sm block">
-                          {contr.contributor_name || "Anonyme"}
-                        </span>
-                        <span className="text-[10px] text-text-tertiary">
-                          {new Date(contr.created_at).toLocaleDateString("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="text-right font-bold text-sm text-text-primary">
-                      {formatMoney(contr.amount)} FCFA
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-
-            {contributions.length > 5 && (
-              <p className="text-xs text-text-tertiary font-semibold pt-1">
-                + {contributions.length - 5} autre{contributions.length - 5 > 1 ? "s" : ""} contributeur{contributions.length - 5 > 1 ? "s" : ""}...
-              </p>
-            )}
-          </div>
-        )}
-
-        {/* ── DONATION PAYMENT FORM ──────────────────────────────── */}
-        {isActive ? (
-          <div className="bg-white rounded-3xl border border-app-border shadow-sm overflow-hidden">
-            
-            {/* Header */}
-            <div className="bg-app-surface-elevated px-6 py-4 border-b border-app-border flex items-center gap-3">
-              <Shield className="w-5 h-5 text-success" />
-              <div>
-                <h3 className="font-extrabold text-text-primary text-base">Faire une contribution</h3>
-                <span className="text-[10px] font-semibold text-text-secondary block">Transactions sécurisées par Paystack</span>
-              </div>
-            </div>
-
-            {paymentInitiated ? (
-              /* Payment Pending Screen */
-              <div className="p-8 text-center space-y-6">
-                <div className="w-16 h-16 rounded-full bg-brand-gold/10 text-brand-gold flex items-center justify-center mx-auto animate-bounce">
-                  ⚡
-                </div>
-                <div className="space-y-2">
-                  <h4 className="text-lg font-extrabold text-text-primary">Paiement Initialisé</h4>
-                  <p className="text-sm text-text-secondary max-w-md mx-auto leading-relaxed">
-                    Une page de paiement Paystack a été ouverte dans un nouvel onglet. Veuillez y compléter votre paiement Mobile Money ou Carte Bancaire.
-                  </p>
-                </div>
-
-                <div className="flex flex-col gap-3 max-w-xs mx-auto">
-                  <a 
-                    href={checkoutUrl} 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="py-3.5 bg-brand-gold hover:bg-brand-gold-dark text-white font-bold rounded-2xl shadow-md hover:shadow-lg transition-all text-sm block"
-                  >
-                    Ouvrir la page de paiement
-                  </a>
-                  <button 
-                    onClick={() => setPaymentInitiated(false)}
-                    className="py-3 border border-app-border hover:bg-app-surface-elevated text-text-primary font-bold rounded-2xl transition-all text-xs"
-                  >
-                    Retourner au formulaire
-                  </button>
-                </div>
-              </div>
-            ) : (
-              /* Input Form */
-              <form onSubmit={handlePay} className="p-6 space-y-6">
-                
-                {/* 1. Deux champs synchronisés */}
-                <div className="space-y-3">
-                  <div className="flex items-end gap-2">
-                    {/* Champ gross */}
-                    <div className="flex-1">
-                      <label className="text-xs font-bold text-text-secondary uppercase tracking-wider block mb-2">
-                        Je veux payer
-                      </label>
-                      <div className="relative rounded-2xl border border-app-border bg-app-surface focus-within:border-brand-gold focus-within:ring-2 focus-within:ring-brand-gold/20 transition-all">
-                        <input
-                          type="number"
-                          placeholder="0"
-                          min="1"
-                          value={grossInput}
-                          onChange={(e) => handleGrossChange(e.target.value)}
-                          className="w-full pl-4 pr-14 py-4 bg-transparent outline-none font-bold text-lg text-text-primary"
-                          required
-                        />
-                        <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-bold text-text-tertiary">FCFA</span>
-                      </div>
-                    </div>
-
-                    {/* Icône séparateur */}
-                    <div className="mb-3 flex-shrink-0 w-9 h-9 rounded-full bg-app-border-light border border-app-border flex items-center justify-center">
-                      <ArrowLeftRight className="w-3.5 h-3.5 text-text-tertiary" />
-                    </div>
-
-                    {/* Champ net */}
-                    <div className="flex-1">
-                      <label className="text-xs font-bold text-text-secondary uppercase tracking-wider block mb-2">
-                        Dans la cagnotte
-                      </label>
-                      <div className="relative rounded-2xl border border-app-border bg-app-surface focus-within:border-brand-gold focus-within:ring-2 focus-within:ring-brand-gold/20 transition-all">
-                        <input
-                          type="number"
-                          placeholder="0"
-                          min="1"
-                          value={netInput}
-                          onChange={(e) => handleNetChange(e.target.value)}
-                          className="w-full pl-4 pr-14 py-4 bg-transparent outline-none font-bold text-lg text-text-primary"
-                        />
-                        <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-bold text-text-tertiary">FCFA</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Presets */}
-                  <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
-                    {PRESET_AMOUNTS.map((preset) => (
-                      <button
-                        key={preset}
-                        type="button"
-                        onClick={() => handlePresetClick(preset)}
-                        className={`py-2 rounded-xl text-xs font-bold border transition-all ${grossInput === preset.toString() ? "bg-brand-gold border-brand-gold text-white shadow-md shadow-brand-gold/15" : "bg-white border-app-border text-text-secondary hover:border-text-tertiary"}`}
-                      >
-                        +{formatMoney(preset)}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* 3. Contributor Name & Phone */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-xs font-bold text-text-secondary uppercase tracking-wider flex justify-between items-center mb-2">
-                      Nom complet
-                      {cotisation.settings?.anonymous_allowed && (
-                        <label className="inline-flex items-center gap-1 text-[10px] font-semibold text-text-tertiary cursor-pointer lowercase normal-case">
-                          <input
-                            type="checkbox"
-                            checked={anonymous}
-                            onChange={(e) => setAnonymous(e.target.checked)}
-                            className="rounded border-app-border text-brand-gold focus:ring-brand-gold/40 cursor-pointer"
-                          />
-                          Anonyme
-                        </label>
-                      )}
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="Ex: Kouamé Koffi"
-                      value={contributorName}
-                      onChange={(e) => setContributorName(e.target.value)}
-                      disabled={anonymous}
-                      className="w-full px-5 py-3.5 rounded-2xl border border-app-border bg-app-surface disabled:bg-app-border-light disabled:text-text-tertiary focus:outline-none focus:border-brand-gold focus:ring-2 focus:ring-brand-gold/20 transition-all text-sm font-semibold text-text-primary"
-                      required={!anonymous}
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-xs font-bold text-text-secondary uppercase tracking-wider block mb-2">
-                      Numéro Mobile Money
-                    </label>
-                    <input
-                      type="tel"
-                      placeholder="Ex: 0707070707"
-                      value={contributorPhone}
-                      onChange={(e) => setContributorPhone(e.target.value)}
-                      className="w-full px-5 py-3.5 rounded-2xl border border-app-border bg-app-surface focus:outline-none focus:border-brand-gold focus:ring-2 focus:ring-brand-gold/20 transition-all text-sm font-semibold text-text-primary"
-                      required
-                    />
-                  </div>
-                </div>
-
-                {/* 4. Frais */}
-                {calculatedFees.gross > 0 && (
-                  <div className="bg-app-surface-elevated rounded-2xl px-4 py-3 border border-app-border/60 flex items-center gap-3 text-xs">
-                    <div className="w-5 h-5 rounded-full bg-app-border flex items-center justify-center flex-shrink-0">
-                      <span className="text-[10px] text-text-tertiary font-bold">i</span>
-                    </div>
-                    <span className="text-text-secondary flex-1">
-                      Frais de service{" "}
-                      <span className="font-bold text-text-primary">2,5%</span>
-                      {" · "}Montant net dans la cagnotte{" "}
-                      <span className="font-bold text-success">{formatMoney(calculatedFees.net)} F</span>
-                    </span>
-                    <span className="font-bold text-text-secondary whitespace-nowrap">
-                      −{formatMoney(calculatedFees.paystackFee + calculatedFees.platformFee)} F
-                    </span>
-                  </div>
-                )}
-
-                {/* Submit button */}
-                <button
-                  type="submit"
-                  disabled={submitting}
-                  className="w-full py-4 bg-gradient-to-r from-brand-gold to-brand-gold-dark disabled:from-brand-gold/60 disabled:to-brand-gold-dark/60 text-white font-extrabold rounded-2xl shadow-lg shadow-brand-gold/10 hover:shadow-xl hover:shadow-brand-gold/20 transition-all duration-300 transform active:scale-95 flex items-center justify-center gap-2 text-base cursor-pointer disabled:cursor-not-allowed"
-                >
-                  {submitting ? (
-                    <>
-                      <Loader2 className="w-5 h-5 animate-spin" />
-                      Initialisation du paiement...
-                    </>
-                  ) : (
-                    <>
-                      Contribuer {calculatedFees.gross > 0 ? `${formatMoney(calculatedFees.gross)} F` : ""}
-                    </>
-                  )}
-                </button>
-
-              </form>
-            )}
-
-          </div>
-        ) : (
-          /* Closed banner */
-          <div className="bg-app-border-light rounded-3xl p-8 border border-app-border/60 text-center space-y-3">
-            <div className="w-12 h-12 rounded-full bg-app-border text-text-tertiary flex items-center justify-center text-lg mx-auto">
-              🔒
-            </div>
-            <div className="space-y-1">
-              <h4 className="font-bold text-text-primary text-base">Cotisation fermée</h4>
-              <p className="text-xs text-text-secondary max-w-sm mx-auto leading-normal">
-                Cette cotisation est clôturée ou a expiré. Plus aucune contribution ne peut y être effectuée.
-              </p>
-            </div>
-          </div>
-        )}
-
-        {/* ── SHARE & ACTION CARD ────────────────────────────────── */}
-        <div className="bg-white rounded-3xl p-6 border border-app-border shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="text-left w-full sm:w-auto">
-            <span className="text-xs font-bold text-text-tertiary uppercase tracking-wider block mb-1">
-              Lien de partage
-            </span>
-            <span className="font-bold text-brand-blue text-sm block truncate max-w-xs sm:max-w-md">
-              mastercota.com/c/{slug}
-            </span>
-          </div>
-
-          <button
-            onClick={handleCopyLink}
-            className="w-full sm:w-auto px-5 py-3 border border-brand-blue/30 bg-brand-blue/5 hover:bg-brand-blue/10 text-brand-blue font-bold rounded-2xl transition-all flex items-center justify-center gap-2 text-xs"
-          >
-            <Copy className="w-4 h-4" />
+        <div style={{ display: "flex", gap: 16, alignItems: "center", fontSize: 12, color: "var(--ink-3)" }}>
+          <span className="num">mastercota.com/c/{slug}</span>
+          <button className="btn btn-ghost" onClick={handleCopyLink} style={{ height: 34, padding: "0 14px", fontSize: 12 }}>
             {copiedLink ? "Copié !" : "Copier le lien"}
           </button>
         </div>
+      </header>
 
-      </main>
+      <main style={{ maxWidth: 1280, margin: "0 auto", padding: "56px 48px 120px", display: "grid", gridTemplateColumns: "1.3fr 1fr", gap: 80, alignItems: "start" }}>
 
-      {/* ── APP DOWNLOAD CALLOUT FOOTER ───────────────────────────── */}
-      <footer className="max-w-3xl mx-auto px-4 mt-16 text-center space-y-6">
-        <div className="bg-[#0A1120] text-white rounded-3xl p-8 relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-6">
-          <div className="absolute top-0 right-0 w-36 h-36 bg-white/5 rounded-full pointer-events-none" />
-          
-          <div className="text-left space-y-2 max-w-md">
-            <h4 className="font-bold text-lg">Vous aussi, créez votre propre cagnotte !</h4>
-            <p className="text-white/60 text-xs leading-normal">
-              Téléchargez l'application mobile Mastercota pour créer, paramétrer et gérer vos cotisations directement depuis votre smartphone.
-            </p>
+        {/* ── LEFT — story + numbers + contributors ── */}
+        <div>
+          {/* Eyebrow row */}
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 24 }}>
+            <Eyebrow>Cagnotte collective · {isCompleted ? "Atteinte" : isClosed ? "Clôturée" : `En cours · J−${days}`}</Eyebrow>
+            <Eyebrow>Ouverte le {openDate}</Eyebrow>
           </div>
 
-          <a
-            href="/#download"
-            className="px-6 py-3.5 bg-brand-gold hover:bg-brand-gold-dark text-white rounded-2xl text-xs font-bold flex items-center gap-2 shadow-lg shadow-brand-gold/15 whitespace-nowrap transition-colors"
-          >
-            <Smartphone className="w-4 h-4" />
-            Télécharger Mastercota
-          </a>
+          {/* Title */}
+          <h1 style={{
+            fontFamily: "var(--sans)", fontWeight: 400,
+            fontSize: "clamp(48px, 5.8vw, 84px)", lineHeight: 0.98,
+            letterSpacing: "-0.03em", margin: "0 0 28px",
+          }}>
+            {cotisation.title.split(" ").slice(0, -2).join(" ")}<br />
+            <span className="serif-italic" style={{ color: "var(--accent)" }}>
+              {cotisation.title.split(" ").slice(-2).join(" ")}.
+            </span>
+          </h1>
+
+          {cotisation.description && (
+            <p style={{ fontSize: 18, lineHeight: 1.55, color: "var(--ink-2)", margin: 0, maxWidth: 600 }}>
+              {cotisation.description}
+            </p>
+          )}
+
+          {/* Numbers panel */}
+          {cotisation.settings?.show_progress && (
+            <div style={{ marginTop: 56, padding: "32px 0", borderTop: "1px solid var(--ink)", borderBottom: "1px solid var(--line)" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr", gap: 32, alignItems: "end" }}>
+                <div>
+                  <Eyebrow style={{ display: "block", marginBottom: 8 }}>Collecté</Eyebrow>
+                  <div className="num" style={{ fontSize: 72, letterSpacing: "-0.03em", lineHeight: 1 }}>
+                    {fmt(cotisation.current_amount)} <span style={{ fontSize: 22, color: "var(--ink-3)" }}>F</span>
+                  </div>
+                </div>
+                {cotisation.settings?.show_target_amount && (
+                  <div>
+                    <Eyebrow style={{ display: "block", marginBottom: 8 }}>Objectif</Eyebrow>
+                    <div className="num" style={{ fontSize: 22, color: "var(--ink-3)" }}>{fmt(cotisation.target_amount)} F</div>
+                  </div>
+                )}
+                <div>
+                  <Eyebrow style={{ display: "block", marginBottom: 8 }}>Contributions</Eyebrow>
+                  <div className="num" style={{ fontSize: 22, color: "var(--ink-3)" }}>{contributions.length} dons</div>
+                </div>
+              </div>
+
+              <div className="bar" style={{ marginTop: 28 }}>
+                <div className="bar-fill" style={{ width: `${pct}%`, background: isCompleted ? "var(--forest)" : "var(--accent)" }} />
+              </div>
+              <div style={{ display: "flex", justifyContent: "space-between", marginTop: 10, fontSize: 12 }}>
+                <span style={{ color: "var(--ink-2)" }}>
+                  <span className="num" style={{ color: "var(--ink)" }}>{pct.toFixed(0)} %</span> de l'objectif atteint
+                </span>
+                <span style={{ color: "var(--ink-3)" }}>Clôture le {closeDate}</span>
+              </div>
+            </div>
+          )}
+
+          {/* Best contributor */}
+          {cotisation.settings?.show_best_contributor && best && (
+            <div style={{
+              marginTop: 40, padding: "24px 28px", background: "var(--ink)", color: "var(--paper)",
+              borderRadius: 16, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 24
+            }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 18 }}>
+                <div style={{
+                  width: 48, height: 48, borderRadius: 50, background: "var(--accent)",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  fontSize: 22, color: "var(--paper)", fontWeight: 500
+                }}>
+                  {(best.contributor_name || "A")[0].toUpperCase()}
+                </div>
+                <div>
+                  <Eyebrow style={{ color: "rgba(255,255,255,0.55)", display: "block", marginBottom: 4 }}>Meilleur contributeur</Eyebrow>
+                  <div style={{ fontSize: 18, fontWeight: 500 }}>{best.contributor_name || "Anonyme"}</div>
+                </div>
+              </div>
+              <div className="num" style={{ fontSize: 28, letterSpacing: "-0.02em" }}>{fmt(best.amount)} F</div>
+            </div>
+          )}
+
+          {/* Contributors list */}
+          {cotisation.settings?.show_contributors && contributions.length > 0 && (
+            <section style={{ marginTop: 64 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 24 }}>
+                <h2 style={{ fontFamily: "var(--sans)", fontWeight: 500, fontSize: 28, margin: 0, letterSpacing: "-0.01em" }}>
+                  {contributions.length} contributeur{contributions.length > 1 ? "s" : ""}
+                </h2>
+                <Eyebrow>Mis à jour en temps réel</Eyebrow>
+              </div>
+
+              <div>
+                {visibleContr.map((c, i) => (
+                  <div key={c.id} style={{
+                    display: "grid", gridTemplateColumns: "auto 1fr auto auto", gap: 20,
+                    alignItems: "baseline", padding: "16px 0", borderTop: "1px solid var(--line-soft)"
+                  }}>
+                    <span className="num" style={{ fontSize: 11, color: "var(--ink-4)" }}>
+                      {String(i + 1).padStart(2, "0")}
+                    </span>
+                    <div>
+                      <div style={{ fontSize: 15 }}>{c.contributor_name || "Anonyme"}</div>
+                    </div>
+                    <span style={{ fontSize: 12, color: "var(--ink-4)" }}>
+                      {new Date(c.created_at).toLocaleDateString("fr-FR", { day: "numeric", month: "short" })}
+                    </span>
+                    <span className="num" style={{ fontSize: 15 }}>{fmt(c.amount)} F</span>
+                  </div>
+                ))}
+                {contributions.length > 8 && !showAll && (
+                  <div style={{ padding: "16px 0", borderTop: "1px solid var(--line-soft)", textAlign: "center" }}>
+                    <button className="btn btn-ghost" style={{ height: 38, padding: "0 18px", fontSize: 12 }}
+                      onClick={() => setShowAll(true)}>
+                      Voir les {contributions.length - 8} autres
+                    </button>
+                  </div>
+                )}
+              </div>
+            </section>
+          )}
         </div>
 
-        <p className="text-[10px] text-text-tertiary font-medium">
-          Propulsé par Mastercota — Plus simple de cotiser.
-        </p>
+        {/* ── RIGHT — sticky form ── */}
+        <aside style={{ position: "sticky", top: 100 }}>
+          <div className="card" style={{ padding: 0, overflow: "hidden" }}>
+            {/* Card header */}
+            <div style={{
+              padding: "20px 28px", borderBottom: "1px solid var(--line)",
+              display: "flex", alignItems: "center", justifyContent: "space-between"
+            }}>
+              <div style={{ fontFamily: "var(--sans)", fontWeight: 500, fontSize: 22, letterSpacing: "-0.01em" }}>
+                Contribuer
+              </div>
+              <span style={{
+                display: "inline-flex", alignItems: "center", gap: 6,
+                padding: "5px 10px", borderRadius: 999, fontSize: 11, fontWeight: 500,
+                background: "var(--forest-soft)", border: "1px solid rgba(45,106,79,0.24)", color: "var(--forest)"
+              }}>
+                <span style={{ width: 6, height: 6, borderRadius: 50, background: "var(--forest)" }} />
+                Sécurisé · Paystack
+              </span>
+            </div>
+
+            <div style={{ padding: 28 }}>
+              {isActive ? (
+                paymentInitiated ? (
+                  /* Payment pending */
+                  <div style={{ textAlign: "center", padding: "16px 0" }}>
+                    <div style={{ fontSize: 40, marginBottom: 16 }}>⚡</div>
+                    <h4 style={{ fontWeight: 500, fontSize: 20, margin: "0 0 12px" }}>Paiement initialisé</h4>
+                    <p style={{ fontSize: 14, color: "var(--ink-2)", lineHeight: 1.55, marginBottom: 24 }}>
+                      Une page de paiement Paystack a été ouverte dans un nouvel onglet.
+                    </p>
+                    <div style={{ display: "grid", gap: 10 }}>
+                      <a href={checkoutUrl} target="_blank" rel="noopener noreferrer"
+                        className="btn btn-accent" style={{ textDecoration: "none", height: 52, fontSize: 14 }}>
+                        Ouvrir la page de paiement
+                      </a>
+                      <button className="btn btn-ghost" style={{ height: 44 }} onClick={() => setPaymentInitiated(false)}>
+                        Retourner au formulaire
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <form onSubmit={handlePay}>
+                    {/* Amount input */}
+                    <label className="eyebrow" style={{ display: "block", marginBottom: 14 }}>Montant</label>
+                    <div style={{ display: "flex", alignItems: "baseline", gap: 10, paddingBottom: 14, borderBottom: "1px solid var(--ink)" }}>
+                      <input
+                        type="number" value={grossInput} onChange={(e) => handleGrossChange(e.target.value)}
+                        className="num"
+                        style={{
+                          flex: 1, border: "none", outline: "none", background: "transparent",
+                          fontSize: 52, color: "var(--ink)", letterSpacing: "-0.03em", padding: 0, fontWeight: 500
+                        }}
+                        required
+                      />
+                      <span className="num" style={{ fontSize: 18, color: "var(--ink-3)" }}>FCFA</span>
+                    </div>
+
+                    {/* Presets */}
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8, marginTop: 16 }}>
+                      {PRESET_AMOUNTS.map((p) => (
+                        <button key={p} type="button" onClick={() => handleGrossChange(String(p))}
+                          className="num"
+                          style={{
+                            padding: "10px 0", borderRadius: 999, fontSize: 12, fontWeight: 500, cursor: "pointer",
+                            background: grossInput === String(p) ? "var(--ink)" : "transparent",
+                            color: grossInput === String(p) ? "var(--paper)" : "var(--ink-2)",
+                            border: "1px solid " + (grossInput === String(p) ? "var(--ink)" : "var(--line)"),
+                            transition: "all .15s"
+                          }}>
+                          {p.toLocaleString("fr-FR")}
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* Name + phone */}
+                    <div style={{ marginTop: 28, display: "grid", gap: 14 }}>
+                      {/* Name */}
+                      <div style={{ borderBottom: "1px solid var(--line)", paddingBottom: 4 }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+                          <span className="eyebrow">Nom</span>
+                          {cotisation.settings?.anonymous_allowed && (
+                            <label style={{ fontSize: 11, color: "var(--ink-3)", display: "flex", gap: 6, alignItems: "center", cursor: "pointer" }}>
+                              <input type="checkbox" checked={anonymous} onChange={(e) => setAnonymous(e.target.checked)} />
+                              Anonyme
+                            </label>
+                          )}
+                        </div>
+                        <input type="text" value={anonymous ? "Anonyme" : contributorName}
+                          onChange={(e) => setContributorName(e.target.value)}
+                          disabled={anonymous} placeholder="Aminata Koné"
+                          style={{ width: "100%", border: "none", outline: "none", background: "transparent", padding: "10px 0", fontSize: 15, color: "var(--ink)" }}
+                        />
+                      </div>
+                      {/* Phone */}
+                      <div style={{ borderBottom: "1px solid var(--line)", paddingBottom: 4 }}>
+                        <span className="eyebrow" style={{ display: "block" }}>Mobile Money</span>
+                        <input type="tel" value={contributorPhone} onChange={(e) => setContributorPhone(e.target.value)}
+                          placeholder="+225 07 07 07 07 07" required
+                          style={{ width: "100%", border: "none", outline: "none", background: "transparent", padding: "10px 0", fontSize: 15, color: "var(--ink)" }}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Fee breakdown */}
+                    {fees.gross > 0 && (
+                      <div style={{
+                        marginTop: 24, padding: "14px 16px", background: "var(--paper-2)", borderRadius: 12,
+                        display: "grid", gap: 8, fontSize: 12
+                      }}>
+                        <FeeRow label="Votre paiement" value={`${fmt(fees.gross)} F`} />
+                        <FeeRow label="Frais MasterCota (2,5 %)" value={`−${fmt(fees.paystackFee + fees.platformFee)} F`} muted />
+                        <div style={{ height: 1, background: "var(--line)", margin: "4px 0" }} />
+                        <FeeRow label="Reçu dans la cagnotte" value={`${fmt(Math.max(0, fees.net))} F`} bold />
+                      </div>
+                    )}
+
+                    {/* CTA */}
+                    <button type="submit" disabled={submitting} className="btn btn-accent"
+                      style={{ width: "100%", marginTop: 20, height: 56, fontSize: 15, opacity: submitting ? 0.7 : 1 }}>
+                      {submitting
+                        ? "Initialisation…"
+                        : `Contribuer ${fees.gross > 0 ? fmt(fees.gross) + " F" : ""} →`}
+                    </button>
+                    <p style={{ fontSize: 11, textAlign: "center", color: "var(--ink-3)", marginTop: 14, lineHeight: 1.4 }}>
+                      En continuant, vous serez redirigé vers Paystack pour le paiement.
+                      <br />Vos informations bancaires ne transitent jamais par MasterCota.
+                    </p>
+                  </form>
+                )
+              ) : (
+                /* Closed */
+                <div style={{ textAlign: "center", padding: "24px 0" }}>
+                  <div style={{ fontSize: 32, marginBottom: 12 }}>🔒</div>
+                  <h4 style={{ fontWeight: 500, margin: "0 0 8px" }}>Cotisation fermée</h4>
+                  <p style={{ fontSize: 13, color: "var(--ink-3)", lineHeight: 1.55 }}>
+                    Cette cotisation est clôturée ou a expiré.
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Share */}
+          <div style={{ marginTop: 24, padding: 20, border: "1px dashed var(--line)", borderRadius: 16 }}>
+            <Eyebrow style={{ display: "block", marginBottom: 10 }}>Partager la cagnotte</Eyebrow>
+            <div style={{ display: "flex", gap: 8 }}>
+              {[
+                ["WhatsApp", `https://wa.me/?text=${encodeURIComponent(`Contribue à cette cagnotte : ${typeof window !== "undefined" ? window.location.href : ""} 🙏`)}`],
+                ["SMS",      `sms:?body=${encodeURIComponent(`Contribue ici : ${typeof window !== "undefined" ? window.location.href : ""}`)}`],
+                ["Lien",     null],
+              ].map(([label, href]) => (
+                href
+                  ? <a key={label} href={href} target="_blank" rel="noopener noreferrer"
+                      className="btn btn-ghost" style={{ flex: 1, height: 38, fontSize: 12, textDecoration: "none" }}>{label}</a>
+                  : <button key={label} className="btn btn-ghost" style={{ flex: 1, height: 38, fontSize: 12 }}
+                      onClick={handleCopyLink}>{copiedLink ? "Copié !" : label}</button>
+              ))}
+            </div>
+          </div>
+        </aside>
+      </main>
+
+      <footer style={{ borderTop: "1px solid var(--line)", padding: "32px 48px", fontSize: 12, color: "var(--ink-3)", textAlign: "center" }}>
+        Propulsé par MasterCota · <a href="/cgu" style={{ color: "inherit" }}>CGU</a> · <a href="/mentions" style={{ color: "inherit" }}>Mentions légales</a> · <a href="mailto:support@mastercota.com" style={{ color: "inherit" }}>support@mastercota.com</a>
       </footer>
 
     </div>

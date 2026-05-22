@@ -1,31 +1,28 @@
 import type { Metadata } from "next";
-import { Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 
-const plusJakarta = Plus_Jakarta_Sans({
-  variable: "--font-plus-jakarta-sans",
-  subsets: ["latin"],
-});
-
 export const metadata: Metadata = {
-  title: "Mastercota — Plus simple de cotiser",
-  description: "Participez aux cotisations Mastercota de manière simple et sécurisée avec Paystack.",
+  title: "MasterCota — Plus simple de cotiser",
+  description:
+    "La plateforme de cotisations collectives pour l'Afrique francophone. Mobile Money, transparence totale, reversement automatique.",
 };
 
 export default function RootLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode;
-}>) {
+}) {
   return (
-    <html
-      lang="fr"
-      className={`${plusJakarta.variable} h-full antialiased`}
-    >
-      <body className="min-h-full flex flex-col font-sans bg-[#F5F7FB] text-[#0A1120] selection:bg-[#EEA226]/30 selection:text-[#C78114]">
-        {children}
-      </body>
+    <html lang="fr" className="h-full">
+      <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
+        <link
+          href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500&family=Newsreader:ital,wght@0,400;1,400&display=swap"
+          rel="stylesheet"
+        />
+      </head>
+      <body className="min-h-full">{children}</body>
     </html>
   );
 }
-

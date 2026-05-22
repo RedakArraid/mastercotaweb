@@ -3,7 +3,9 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   output: "standalone",
   images: {
-    domains: ["tomtoinewsoktnkrtbbm.supabase.co"],
+    remotePatterns: [
+      { protocol: "https", hostname: "tomtoinewsoktnkrtbbm.supabase.co" },
+    ],
   },
 };
 
