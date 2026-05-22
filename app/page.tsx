@@ -31,7 +31,7 @@ export default function Home() {
         position: "sticky", top: 0, zIndex: 50,
         background: "rgba(255,255,255,0.92)", backdropFilter: "blur(12px)",
       }}>
-        <img src="/design/assets/logo-full.png" alt="MasterCota" style={{ height: 30, width: "auto" }} />
+        <img src="/design/assets/logo-full.png" alt="MasterCota" style={{ height: 40, width: "auto" }} />
         <nav style={{ display: "flex", gap: 36, fontSize: 13, color: "var(--ink-2)" }}>
           <a href="#comment" style={{ cursor: "pointer" }}>Comment ça marche</a>
           <a href="#securite" style={{ cursor: "pointer" }}>Sécurité</a>
@@ -344,7 +344,7 @@ export default function Home() {
       {/* ── Footer ── */}
       <footer style={{ padding: "48px 64px", borderTop: "1px solid var(--line)", fontSize: 13, color: "var(--ink-3)" }}>
         <div style={{ maxWidth: 1280, margin: "0 auto", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <img src="/design/assets/logo-full.png" alt="MasterCota" style={{ height: 24, width: "auto" }} />
+          <img src="/design/assets/logo-full.png" alt="MasterCota" style={{ height: 32, width: "auto" }} />
           <div style={{ display: "flex", gap: 24 }}>
             <a href={siteConfig?.doc_cgu_url || "#"} target="_blank" rel="noreferrer">CGU</a>
             <a href={siteConfig?.doc_mentions_url || "#"} target="_blank" rel="noreferrer">Mentions légales</a>
