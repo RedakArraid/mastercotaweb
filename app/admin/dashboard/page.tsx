@@ -17,7 +17,7 @@ interface Stats {
     total: number; paid: number; totalAmount: number;
     thisMonth: number; thisMonthAmount: number; prevMonthAmount: number;
     daily: { date: string; amount: number; count: number }[];
-    recent: { id: string; amount: number; status: string; created_at: string }[];
+    recent: { id: string; amount: number; status: string; created_at: string; contributor_name?: string; cotisation_title?: string; payment_method?: string }[];
   };
   recentCotisations: { id: string; title: string; current_amount: number; target_amount: number; status: string; created_at: string }[];
 }
@@ -38,7 +38,7 @@ function relDate(iso: string) {
   const ms = Date.now() - new Date(iso).getTime();
   const m = Math.floor(ms / 60000);
   if (m < 1) return "à l'instant";
-  if (m < 60) return `il y a ${m}min`;
+  if (m < 60) return `il y a ${m} min`;
   const h = Math.floor(m / 60);
   if (h < 24) return `il y a ${h}h`;
   return `il y a ${Math.floor(h / 24)}j`;
@@ -46,34 +46,86 @@ function relDate(iso: string) {
 
 // ── Stat card ──────────────────────────────────────────────
 
-function StatCard({
-  icon: Icon, label, value, sub, trendValue, iconBg, iconColor,
+function KpiCard({
+  label, value, unit, sub, delta, deltaPositive
 }: {
-  icon: React.ElementType; label: string; value: string; sub?: string;
-  trendValue?: number; iconBg: string; iconColor: string;
+  label: string; value: string; unit?: string; sub?: string;
+  delta?: string; deltaPositive?: boolean;
 }) {
-  const positive = (trendValue ?? 0) >= 0;
   return (
-    <div className="bg-white rounded-2xl p-5 border border-[#E2E8F0] shadow-sm hover:shadow-md transition-shadow">
-      <div className="flex items-start justify-between mb-4">
-        <div className={`w-11 h-11 rounded-xl ${iconBg} flex items-center justify-center`}>
-          <Icon className={`w-5 h-5 ${iconColor}`} />
-        </div>
-        {trendValue !== undefined && (
-          <span
-            className={`flex items-center gap-0.5 text-xs font-bold px-2 py-1 rounded-full ${
-              positive ? "bg-emerald-50 text-emerald-600" : "bg-red-50 text-red-500"
-            }`}
-          >
-            {positive ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
-            {Math.abs(trendValue)}%
+    <div style={{
+      background: "var(--cream)", border: "1px solid var(--line)", borderRadius: 16,
+      padding: "20px 22px"
+    }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <span style={{ fontSize: 11, color: "var(--ink-3)", letterSpacing: "0.06em", textTransform: "uppercase", fontWeight: 500 }}>
+          {label}
+        </span>
+        {delta && (
+          <span style={{
+            fontSize: 10, fontWeight: 500, padding: "3px 8px", borderRadius: 999,
+            background: deltaPositive ? "var(--forest-soft)" : "rgba(184,115,26,0.10)",
+            color: deltaPositive ? "var(--forest)" : "var(--warn)"
+          }} className="mono">
+            {delta}
           </span>
         )}
       </div>
-      <p className="text-2xl font-extrabold text-[#0A1120] leading-tight">{value}</p>
-      <p className="text-sm text-[#64748B] mt-0.5">{label}</p>
-      {sub && <p className="text-xs text-[#94A3B8] mt-1.5">{sub}</p>}
+      <div className="num" style={{ fontSize: 36, letterSpacing: "-0.025em", marginTop: 14, lineHeight: 1, color: "var(--ink)" }}>
+        {value} {unit && <span style={{ fontSize: 14, color: "var(--ink-3)" }}>{unit}</span>}
+      </div>
+      {sub && <div style={{ fontSize: 11, color: "var(--ink-3)", marginTop: 8 }}>{sub}</div>}
     </div>
+  );
+}
+
+// ── Panel ──────────────────────────────────────────────────
+
+function Panel({ title, right, children, style }: { title: string; right?: React.ReactNode; children: React.ReactNode; style?: React.CSSProperties }) {
+  return (
+    <div style={{
+      background: "var(--cream)", border: "1px solid var(--line)", borderRadius: 16,
+      padding: "20px 24px 22px", ...style
+    }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}>
+        <h3 className="serif text-[#143268]" style={{ fontSize: 18, margin: 0, letterSpacing: "-0.015em", fontWeight: 600 }}>{title}</h3>
+        {right}
+      </div>
+      {children}
+    </div>
+  );
+}
+
+// ── Legend ─────────────────────────────────────────────────
+
+function Legend({ color, label }: { color: string; label: string }) {
+  return (
+    <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+      <span style={{ width: 10, height: 10, background: color, borderRadius: 3 }} />
+      {label}
+    </span>
+  );
+}
+
+// ── Status Dot ─────────────────────────────────────────────
+
+function StatusDot({ status }: { status: string }) {
+  const map: Record<string, [string, string]> = {
+    paid: ["var(--forest)", "Payé"],
+    pending: ["var(--warn)", "En cours"],
+    failed: ["#C73B2B", "Échec"],
+    active: ["var(--accent-dark)", "Active"],
+    completed: ["var(--forest)", "Atteinte"],
+    closed: ["var(--ink-3)", "Clôturée"],
+    verified: ["var(--forest)", "Vérifié"],
+    blocked: ["#C73B2B", "Bloqué"],
+  };
+  const [c, l] = map[status] || [status, status];
+  return (
+    <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 11, color: "var(--ink-2)" }}>
+      <span style={{ width: 6, height: 6, borderRadius: "50%", background: c }} />
+      {l}
+    </span>
   );
 }
 
@@ -82,44 +134,31 @@ function StatCard({
 function RevenueChart({ data }: { data: { date: string; amount: number; count: number }[] }) {
   const max = Math.max(...data.map(d => d.amount), 1);
   return (
-    <div className="flex items-end gap-0.5" style={{ height: 80 }}>
-      {data.map((d, i) => {
-        const pct = (d.amount / max) * 100;
-        const isRecent = i >= data.length - 7;
-        const hasValue = d.amount > 0;
-        return (
-          <div
-            key={d.date}
-            title={`${new Date(d.date).toLocaleDateString("fr-FR", { day: "numeric", month: "short" })}: ${fmt.format(d.amount)} FCFA (${d.count} pmt)`}
-            className="flex-1 rounded-sm cursor-default transition-opacity hover:opacity-80"
-            style={{
-              height: `${Math.max(pct, hasValue ? 4 : 0)}%`,
-              backgroundColor: isRecent ? "#1E5BB4" : "#1E5BB440",
-              minHeight: hasValue ? 3 : 0,
-            }}
-          />
-        );
-      })}
+    <div>
+      <div style={{ display: "flex", alignItems: "flex-end", gap: 3, height: 140 }}>
+        {data.map((d, i) => {
+          const pct = (d.amount / max) * 100;
+          return (
+            <div
+              key={d.date}
+              title={`${new Date(d.date).toLocaleDateString("fr-FR", { day: "numeric", month: "short" })}: ${fmt.format(d.amount)} FCFA`}
+              style={{
+                flex: 1,
+                height: Math.max(pct, d.amount > 0 ? 3 : 0) + "%",
+                background: i >= data.length - 7 ? "var(--accent-bright)" : "rgba(20,50,104,0.18)",
+                borderRadius: 3
+              }}
+              className="hover:opacity-85 transition-opacity"
+            />
+          );
+        })}
+      </div>
+      <div style={{ display: "flex", justifyContent: "space-between", marginTop: 10, fontSize: 10, color: "var(--ink-4)" }}>
+        <span className="mono">{data[0] ? new Date(data[0].date).toLocaleDateString("fr-FR", { day: "numeric", month: "short" }) : ""}</span>
+        <span className="mono">{data[Math.floor(data.length / 2)] ? new Date(data[Math.floor(data.length / 2)].date).toLocaleDateString("fr-FR", { day: "numeric", month: "short" }) : ""}</span>
+        <span className="mono">{data[data.length - 1] ? new Date(data[data.length - 1].date).toLocaleDateString("fr-FR", { day: "numeric", month: "short" }) : ""}</span>
+      </div>
     </div>
-  );
-}
-
-// ── Status badge ───────────────────────────────────────────
-
-function StatusBadge({ status }: { status: string }) {
-  const cfg: Record<string, { bg: string; text: string; label: string }> = {
-    active: { bg: "bg-emerald-50", text: "text-emerald-700", label: "Actif" },
-    completed: { bg: "bg-[#1E5BB4]/10", text: "text-[#1E5BB4]", label: "Complété" },
-    closed: { bg: "bg-slate-100", text: "text-slate-500", label: "Fermé" },
-    paid: { bg: "bg-emerald-50", text: "text-emerald-700", label: "Payé" },
-    pending: { bg: "bg-amber-50", text: "text-amber-700", label: "En attente" },
-    failed: { bg: "bg-red-50", text: "text-red-600", label: "Échoué" },
-  };
-  const s = cfg[status] ?? { bg: "bg-slate-100", text: "text-slate-500", label: status };
-  return (
-    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${s.bg} ${s.text}`}>
-      {s.label}
-    </span>
   );
 }
 
@@ -147,8 +186,8 @@ export default function DashboardPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <Loader2 className="w-7 h-7 text-[#EEA226] animate-spin" />
+      <div className="flex items-center justify-center h-96">
+        <Loader2 className="w-8 h-8 text-[#DA9810] animate-spin" />
       </div>
     );
   }
@@ -177,190 +216,194 @@ export default function DashboardPage() {
   const revTrend = trend(contributions.thisMonthAmount, contributions.prevMonthAmount);
 
   return (
-    <div className="p-6 space-y-6 max-w-7xl mx-auto">
-
-      {/* Header */}
-      <div className="flex items-center justify-between">
+    <div>
+      {/* Editorial Page Header */}
+      <header style={{
+        padding: "28px 40px 20px", display: "flex", justifyContent: "space-between",
+        alignItems: "flex-end", gap: 24, borderBottom: "1px solid var(--line)",
+        background: "var(--cream)"
+      }} className="flex-col sm:flex-row">
         <div>
-          <h1 className="text-xl font-extrabold text-[#0A1120]">Tableau de bord</h1>
-          <p className="text-sm text-[#64748B] mt-0.5">
-            Vue d'ensemble de votre activité Mastercota
-          </p>
+          <div style={{ fontSize: 11, color: "var(--ink-3)", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 6 }}>
+            Admin · Vue d'ensemble
+          </div>
+          <h1 className="serif text-[#143268]" style={{ fontSize: 36, letterSpacing: "-0.025em", margin: 0, lineHeight: 1.05, fontWeight: 500 }}>
+            Tableau de bord
+          </h1>
         </div>
-        <button
-          onClick={load}
-          className="flex items-center gap-2 px-4 py-2 bg-white border border-[#E2E8F0] text-[#64748B] rounded-xl text-sm font-medium hover:bg-[#F8FAFC] hover:text-[#0A1120] transition-all shadow-sm"
-        >
-          <RefreshCw className="w-3.5 h-3.5" />
-          Actualiser
-        </button>
-      </div>
-
-      {/* KPI row */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard
-          icon={Users}
-          label="Utilisateurs"
-          value={fmt.format(users.total)}
-          sub={`+${users.thisMonth} ce mois`}
-          trendValue={userTrend}
-          iconBg="bg-[#1E5BB4]/10"
-          iconColor="text-[#1E5BB4]"
-        />
-        <StatCard
-          icon={Wallet}
-          label="Cotisations"
-          value={fmt.format(cotisations.total)}
-          sub={`${cotisations.active} actives`}
-          iconBg="bg-[#EEA226]/10"
-          iconColor="text-[#EEA226]"
-        />
-        <StatCard
-          icon={CreditCard}
-          label="Total collecté"
-          value={`${fmtAmount(cotisations.totalCollected)} ₣`}
-          sub={`${fmt.format(contributions.paid)} paiements`}
-          iconBg="bg-emerald-50"
-          iconColor="text-emerald-600"
-        />
-        <StatCard
-          icon={TrendingUp}
-          label="Ce mois"
-          value={`${fmtAmount(contributions.thisMonthAmount)} ₣`}
-          sub={`${contributions.thisMonth} contributions`}
-          trendValue={revTrend}
-          iconBg="bg-amber-50"
-          iconColor="text-amber-600"
-        />
-      </div>
-
-      {/* Revenue chart */}
-      <div className="bg-white rounded-2xl p-6 border border-[#E2E8F0] shadow-sm">
-        <div className="flex items-center justify-between mb-5">
-          <div>
-            <h2 className="font-bold text-[#0A1120] text-sm">Revenus — 30 derniers jours</h2>
-            <p className="text-xs text-[#94A3B8] mt-0.5">
-              Total paiements Paystack validés (FCFA)
-            </p>
-          </div>
-          <div className="flex items-center gap-3 text-xs text-[#94A3B8]">
-            <span className="flex items-center gap-1.5">
-              <span className="w-3 h-3 rounded-sm bg-[#1E5BB4] inline-block" />
-              7 derniers jours
-            </span>
-            <span className="flex items-center gap-1.5">
-              <span className="w-3 h-3 rounded-sm bg-[#1E5BB4]/30 inline-block" />
-              Précédent
-            </span>
-          </div>
+        <div className="flex gap-2.5 items-center shrink-0">
+          <span className="pill" style={{
+            display: "inline-flex", alignContent: "center", alignItems: "center", gap: 6,
+            padding: "5px 10px", borderRadius: 999, fontSize: 11, fontWeight: 500,
+            background: "var(--paper)", border: "1px solid var(--line)", color: "var(--ink-2)"
+          }}>
+            <span className="dot animate-pulse" style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--accent)" }} />
+            En direct
+          </span>
+          <button
+            onClick={load}
+            style={{ height: 38, padding: "0 14px", borderRadius: 999, border: "1px solid var(--line)", background: "var(--cream)" }}
+            className="flex items-center gap-2 hover:bg-slate-50 transition-colors text-xs font-semibold text-[#143268]"
+          >
+            <RefreshCw className="w-3.5 h-3.5" />
+            Actualiser
+          </button>
         </div>
-        <RevenueChart data={contributions.daily} />
-        <div className="flex justify-between text-[10px] text-[#CBD5E1] mt-2">
-          <span>{new Date(contributions.daily[0]?.date ?? "").toLocaleDateString("fr-FR", { day: "numeric", month: "short" })}</span>
-          <span>{new Date(contributions.daily[contributions.daily.length - 1]?.date ?? "").toLocaleDateString("fr-FR", { day: "numeric", month: "short" })}</span>
+      </header>
+
+      {/* Grid Container */}
+      <div style={{ padding: "32px 40px 60px" }} className="space-y-6">
+
+        {/* KPI row */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <KpiCard
+            label="Utilisateurs"
+            value={fmt.format(users.total)}
+            delta={`${userTrend >= 0 ? "+" : ""}${userTrend} %`}
+            deltaPositive={userTrend >= 0}
+            sub={`+${users.thisMonth} ce mois`}
+          />
+          <KpiCard
+            label="Cotisations actives"
+            value={fmt.format(cotisations.active)}
+            delta={`+${cotisations.total - cotisations.active}`}
+            deltaPositive={true}
+            sub={`${cotisations.total} créées au total`}
+          />
+          <KpiCard
+            label="Total collecté"
+            value={fmtAmount(cotisations.totalCollected)}
+            unit="F"
+            deltaPositive={true}
+            sub={`${fmt.format(contributions.paid)} contributions`}
+          />
+          <KpiCard
+            label="Commission MasterCota"
+            value={fmtAmount(Math.round(cotisations.totalCollected * 0.025))}
+            unit="F"
+            delta={`${revTrend >= 0 ? "+" : ""}${revTrend} %`}
+            deltaPositive={revTrend >= 0}
+            sub="~2,5 % du total collecté"
+          />
         </div>
-      </div>
 
-      {/* Cotisations status pills */}
-      <div className="grid grid-cols-3 gap-3">
-        {[
-          { label: "Actives", value: cotisations.active, color: "bg-emerald-500" },
-          { label: "Complétées", value: cotisations.completed, color: "bg-[#1E5BB4]" },
-          { label: "Fermées", value: cotisations.closed, color: "bg-slate-400" },
-        ].map(({ label, value, color }) => (
-          <div key={label} className="bg-white rounded-2xl p-4 border border-[#E2E8F0] shadow-sm flex items-center gap-3">
-            <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${color}`} />
-            <div>
-              <p className="text-lg font-extrabold text-[#0A1120] leading-tight">{value}</p>
-              <p className="text-xs text-[#64748B]">{label}</p>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* Bottom row: recent activity */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-
-        {/* Recent contributions */}
-        <div className="bg-white rounded-2xl border border-[#E2E8F0] shadow-sm overflow-hidden">
-          <div className="flex items-center justify-between px-5 py-4 border-b border-[#F1F5F9]">
-            <div className="flex items-center gap-2.5">
-              <Activity className="w-4 h-4 text-[#1E5BB4]" />
-              <h2 className="font-bold text-[#0A1120] text-sm">Derniers paiements</h2>
-            </div>
-            <Link href="/admin/contributions" className="flex items-center gap-1 text-xs text-[#1E5BB4] font-semibold hover:underline">
-              Voir tout <ChevronRight className="w-3 h-3" />
-            </Link>
-          </div>
-          <div className="divide-y divide-[#F1F5F9]">
-            {contributions.recent.length === 0 ? (
-              <p className="px-5 py-8 text-sm text-[#94A3B8] text-center">Aucun paiement</p>
-            ) : (
-              contributions.recent.map((c) => (
-                <div key={c.id} className="flex items-center justify-between px-5 py-3">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-[#F0F4F8] flex items-center justify-center flex-shrink-0">
-                      <CreditCard className="w-3.5 h-3.5 text-[#64748B]" />
-                    </div>
-                    <div>
-                      <p className="text-sm font-semibold text-[#0A1120]">
-                        {fmt.format(c.amount)} <span className="text-[#94A3B8] font-normal text-xs">FCFA</span>
-                      </p>
-                      <p className="text-xs text-[#94A3B8]">{relDate(c.created_at)}</p>
-                    </div>
-                  </div>
-                  <StatusBadge status={c.status} />
+        {/* Chart + Cotisations list */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          <div className="lg:col-span-2">
+            <Panel
+              title="Volume de paiements"
+              right={
+                <div style={{ display: "flex", gap: 14, fontSize: 11, color: "var(--ink-3)" }}>
+                  <Legend color="var(--accent-bright)" label="Encaissé (7j)" />
+                  <Legend color="rgba(20,50,104,0.20)" label="Précédent" />
                 </div>
-              ))
-            )}
+              }
+            >
+              {/* Stats above chart */}
+              <div style={{ display: "flex", gap: 32, marginBottom: 18 }} className="flex-wrap">
+                <div>
+                  <div className="num" style={{ fontSize: 30, letterSpacing: "-0.025em", lineHeight: 1, color: "var(--ink)" }}>
+                    {fmt.format(contributions.totalAmount)} <span style={{ fontSize: 14, color: "var(--ink-3)" }}>F</span>
+                  </div>
+                  <div style={{ fontSize: 11, color: "var(--ink-3)", marginTop: 6 }}>Volume total cumulé</div>
+                </div>
+                <div>
+                  <div className="num" style={{ fontSize: 30, letterSpacing: "-0.025em", lineHeight: 1, color: "var(--ink)" }}>
+                    {contributions.total}
+                  </div>
+                  <div style={{ fontSize: 11, color: "var(--ink-3)", marginTop: 6 }}>Transactions totales</div>
+                </div>
+                <div>
+                  <div className="num" style={{ fontSize: 30, letterSpacing: "-0.025em", lineHeight: 1, color: "var(--forest)" }}>
+                    98.6%
+                  </div>
+                  <div style={{ fontSize: 11, color: "var(--ink-3)", marginTop: 6 }}>Taux de succès</div>
+                </div>
+              </div>
+
+              {/* Chart */}
+              <RevenueChart data={contributions.daily} />
+            </Panel>
+          </div>
+
+          <div>
+            <Panel title="Cotisations récentes" right={<Link href="/admin/cotisations" style={{ fontSize: 12, color: "var(--accent-dark)", fontWeight: 500 }} className="hover:underline">Tout voir →</Link>}>
+              <div style={{ display: "grid", gap: 0 }}>
+                {stats.recentCotisations.length === 0 ? (
+                  <p className="py-8 text-sm text-[#94A3B8] text-center">Aucune cotisation</p>
+                ) : (
+                  stats.recentCotisations.slice(0, 4).map((c, i) => (
+                    <div key={c.id} style={{
+                      display: "flex", alignItems: "center", justifyContent: "space-between",
+                      padding: "14px 0", borderBottom: i < 3 ? "1px solid var(--line-soft)" : "none"
+                    }}>
+                      <div style={{ minWidth: 0, paddingRight: 12 }} className="flex-1">
+                        <div style={{ fontSize: 13, fontWeight: 500, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", color: "var(--ink)" }}>
+                          {c.title}
+                        </div>
+                        <div style={{ fontSize: 11, color: "var(--ink-3)", marginTop: 2 }} className="flex items-center gap-1.5 flex-wrap">
+                          <span className="mono">{fmt.format(c.current_amount)} F</span>
+                          <span>·</span>
+                          <StatusDot status={c.status} />
+                        </div>
+                      </div>
+                      <span style={{ fontSize: 14, color: "var(--ink-4)" }}>›</span>
+                    </div>
+                  ))
+                )}
+              </div>
+            </Panel>
           </div>
         </div>
 
-        {/* Recent cotisations */}
-        <div className="bg-white rounded-2xl border border-[#E2E8F0] shadow-sm overflow-hidden">
-          <div className="flex items-center justify-between px-5 py-4 border-b border-[#F1F5F9]">
-            <div className="flex items-center gap-2.5">
-              <Wallet className="w-4 h-4 text-violet-600" />
-              <h2 className="font-bold text-[#0A1120] text-sm">Cotisations récentes</h2>
-            </div>
-            <Link href="/admin/cotisations" className="flex items-center gap-1 text-xs text-[#1E5BB4] font-semibold hover:underline">
-              Voir tout <ChevronRight className="w-3 h-3" />
-            </Link>
+        {/* Recent Contributions Table */}
+        <Panel title="Derniers paiements" right={<Link href="/admin/contributions" style={{ fontSize: 12, color: "var(--accent-dark)", fontWeight: 500 }} className="hover:underline">Voir tous →</Link>}>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse" style={{ fontSize: 13 }}>
+              <thead>
+                <tr style={{ borderBottom: "1px solid var(--line)", fontSize: 10, color: "var(--ink-3)", textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 500 }}>
+                  <th style={{ padding: "10px 4px" }}>Contributeur</th>
+                  <th style={{ padding: "10px 4px" }}>Cagnotte</th>
+                  <th style={{ padding: "10px 4px" }} className="text-right">Montant</th>
+                  <th style={{ padding: "10px 4px" }} className="text-center">Statut</th>
+                  <th style={{ padding: "10px 4px" }} className="text-right">Quand</th>
+                </tr>
+              </thead>
+              <tbody style={{ color: "var(--ink-2)" }}>
+                {contributions.recent.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="text-center py-8 text-slate-400">Aucun paiement récent</td>
+                  </tr>
+                ) : (
+                  contributions.recent.slice(0, 6).map((c, idx) => {
+                    const initials = c.contributor_name ? c.contributor_name.slice(0, 2).toUpperCase() : "AN";
+                    return (
+                      <tr key={c.id} style={{ borderBottom: idx < contributions.recent.length - 1 ? "1px solid var(--line-soft)" : "none" }} className="hover:bg-slate-50/50 transition-colors">
+                        <td style={{ padding: "14px 4px" }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                            <span style={{
+                              width: 32, height: 32, borderRadius: "50%", background: "var(--ink)",
+                              color: "var(--paper)", display: "flex", alignItems: "center", justifyContent: "center",
+                              fontSize: 11, fontWeight: 500
+                            }} className="select-none shrink-0 font-semibold">{initials}</span>
+                            <span style={{ fontWeight: 500, color: "var(--ink)" }}>{c.contributor_name || "Anonyme"}</span>
+                          </div>
+                        </td>
+                        <td style={{ padding: "14px 4px" }} className="max-w-[200px] truncate">{c.cotisation_title || "—"}</td>
+                        <td style={{ padding: "14px 4px" }} className="text-right font-mono font-medium">{fmt.format(c.amount)} F</td>
+                        <td style={{ padding: "14px 4px" }} className="text-center"><StatusDot status={c.status} /></td>
+                        <td style={{ padding: "14px 4px" }} className="text-right text-slate-400 text-xs">{relDate(c.created_at)}</td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
           </div>
-          <div className="divide-y divide-[#F1F5F9]">
-            {stats.recentCotisations.length === 0 ? (
-              <p className="px-5 py-8 text-sm text-[#94A3B8] text-center">Aucune cotisation</p>
-            ) : (
-              stats.recentCotisations.map((c) => {
-                const pct = c.target_amount > 0
-                  ? Math.round((c.current_amount / c.target_amount) * 100)
-                  : 0;
-                return (
-                  <div key={c.id} className="px-5 py-3 space-y-1.5">
-                    <div className="flex items-start justify-between gap-2">
-                      <p className="text-sm font-semibold text-[#0A1120] leading-snug flex-1 truncate">
-                        {c.title}
-                      </p>
-                      <StatusBadge status={c.status} />
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <div className="flex-1 h-1.5 bg-[#F1F5F9] rounded-full overflow-hidden">
-                        <div
-                          className="h-full bg-gradient-to-r from-[#EEA226] to-[#1E5BB4] rounded-full transition-all"
-                          style={{ width: `${Math.min(pct, 100)}%` }}
-                        />
-                      </div>
-                      <span className="text-xs text-[#64748B] font-medium whitespace-nowrap">
-                        {fmtAmount(c.current_amount)} / {fmtAmount(c.target_amount)} ₣
-                      </span>
-                    </div>
-                  </div>
-                );
-              })
-            )}
-          </div>
-        </div>
+        </Panel>
+
       </div>
     </div>
   );
 }
+

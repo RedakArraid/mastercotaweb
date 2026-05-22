@@ -42,7 +42,7 @@ function Field({
 }) {
   return (
     <div className="space-y-1.5">
-      <label className="block text-sm font-semibold text-[#0A1120]">{label}</label>
+      <label style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)" }} className="block">{label}</label>
       <div className="relative">
         {icon && (
           <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#94A3B8] pointer-events-none">
@@ -54,7 +54,12 @@ function Field({
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
-          className={`w-full py-3 pr-4 rounded-xl border border-[#E8ECF2] bg-[#F5F7FB] text-[#0A1120] text-sm focus:outline-none focus:ring-2 focus:ring-[#1E5BB4]/20 focus:border-[#1E5BB4] transition-all placeholder:text-[#CBD5E1] ${icon ? "pl-10" : "pl-4"}`}
+          style={{
+            height: 42, padding: `0 14px 0 ${icon ? "40px" : "14px"}`, borderRadius: 8,
+            background: "var(--cream)", border: "1px solid var(--line)",
+            color: "var(--ink)", fontSize: 13, outline: "none"
+          }}
+          className="w-full focus:border-slate-400 transition-colors"
         />
       </div>
     </div>
@@ -76,34 +81,47 @@ function DocCard({
   const inputRef = useRef<HTMLInputElement>(null);
 
   return (
-    <div className="p-5 rounded-2xl border border-[#E8ECF2] bg-[#F8FAFC] space-y-4 hover:border-[#CBD5E1] transition-colors">
+    <div style={{
+      padding: 20, borderRadius: 12, border: "1px solid var(--line)",
+      background: "var(--paper-2)"
+    }} className="space-y-4 hover:border-slate-300 transition-colors">
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1">
-          <p className="font-semibold text-[#0A1120] text-sm leading-snug">{title}</p>
-          <p className="text-xs text-[#94A3B8] mt-1">{subtitle}</p>
+          <p style={{ fontWeight: 600, color: "var(--ink)", fontSize: 14 }}>{title}</p>
+          <p style={{ fontSize: 11, color: "var(--ink-4)", marginTop: 4 }}>{subtitle}</p>
         </div>
-        <div className="w-10 h-10 rounded-xl bg-[#1E5BB4]/10 text-[#1E5BB4] flex items-center justify-center flex-shrink-0">
-          <FileText className="w-5 h-5" />
+        <div style={{
+          width: 38, height: 38, borderRadius: 8, background: "rgba(20,50,104,0.06)",
+          color: "var(--ink)", display: "flex", alignItems: "center", justifyContent: "center"
+        }} className="shrink-0">
+          <FileText className="w-4 h-4" />
         </div>
       </div>
 
       {currentUrl ? (
-        <div className="flex items-center gap-2.5 p-3 rounded-xl bg-[#F0FDF4] border border-[#BBF7D0]">
-          <CheckCircle2 className="w-4 h-4 text-emerald-500 flex-shrink-0" />
-          <span className="text-emerald-700 font-medium text-xs flex-1 truncate">Document en ligne</span>
+        <div style={{
+          display: "flex", alignItems: "center", gap: 10, padding: 12, borderRadius: 8,
+          background: "rgba(26,117,87,0.06)", border: "1px solid rgba(26,117,87,0.15)"
+        }}>
+          <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+          <span style={{ color: "var(--forest)", fontWeight: 500, fontSize: 12 }} className="flex-1 truncate">Document en ligne</span>
           <a
             href={currentUrl}
             target="_blank"
             rel="noreferrer"
-            className="flex items-center gap-1 text-xs text-[#1E5BB4] font-bold hover:underline whitespace-nowrap"
+            style={{ fontSize: 12, color: "var(--ink)", fontWeight: 600 }}
+            className="flex items-center gap-1 hover:underline whitespace-nowrap"
           >
             Voir <ExternalLink className="w-3 h-3" />
           </a>
         </div>
       ) : (
-        <div className="flex items-center gap-2.5 p-3 rounded-xl bg-[#FFFBEB] border border-[#FDE68A]">
-          <XCircle className="w-4 h-4 text-amber-400 flex-shrink-0" />
-          <span className="text-amber-700 text-xs font-medium">Aucun document uploadé</span>
+        <div style={{
+          display: "flex", alignItems: "center", gap: 10, padding: 12, borderRadius: 8,
+          background: "rgba(244,184,41,0.08)", border: "1px solid rgba(244,184,41,0.2)"
+        }}>
+          <XCircle className="w-4 h-4 text-amber-500 flex-shrink-0" />
+          <span style={{ color: "var(--ink)", fontSize: 12, fontWeight: 500 }}>Aucun document uploadé</span>
         </div>
       )}
 
@@ -121,7 +139,13 @@ function DocCard({
       <button
         onClick={() => inputRef.current?.click()}
         disabled={isUploading}
-        className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border-2 border-dashed border-[#1E5BB4]/30 text-[#1E5BB4] bg-[#1E5BB4]/5 text-sm font-semibold hover:bg-[#1E5BB4]/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        style={{
+          width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+          padding: "10px 14px", borderRadius: 8, border: "2px dashed rgba(20,50,104,0.2)",
+          color: "var(--ink)", background: "rgba(20,50,104,0.03)", fontSize: 13, fontWeight: 600,
+          cursor: "pointer"
+        }}
+        className="hover:bg-slate-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
       >
         {isUploading ? (
           <><Loader2 className="w-4 h-4 animate-spin" />Upload en cours...</>
@@ -137,9 +161,9 @@ function DocCard({
 
 function SectionHeader({ title, subtitle }: { title: string; subtitle: string }) {
   return (
-    <div className="pb-4 border-b border-[#F1F5F9]">
-      <h2 className="font-bold text-[#0A1120] text-base">{title}</h2>
-      <p className="text-xs text-[#94A3B8] mt-0.5">{subtitle}</p>
+    <div className="pb-4 border-b border-slate-100">
+      <h2 style={{ fontWeight: 700, color: "var(--ink)", fontSize: 16 }}>{title}</h2>
+      <p style={{ fontSize: 12, color: "var(--ink-4)", marginTop: 2 }}>{subtitle}</p>
     </div>
   );
 }
@@ -260,8 +284,7 @@ export default function AdminPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-[#F5F7FB]">
-
+    <div>
       {/* Toasts */}
       <div className="fixed top-4 right-4 z-50 flex flex-col gap-2 pointer-events-none">
         {toasts.map((t) => (
@@ -287,57 +310,58 @@ export default function AdminPage() {
         ))}
       </div>
 
-      {/* Header */}
-      <header className="bg-white border-b border-[#E8ECF2] px-6 h-16 flex items-center justify-between sticky top-0 z-40 shadow-sm">
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#EEA226] to-[#C78114] flex items-center justify-center">
-            <span className="text-white font-extrabold text-lg leading-none">₣</span>
+      {/* Page Header */}
+      <header style={{
+        padding: "28px 40px 20px", display: "flex", justifyContent: "space-between",
+        alignItems: "flex-end", gap: 24, borderBottom: "1px solid var(--line)",
+        background: "var(--cream)"
+      }} className="flex-col sm:flex-row">
+        <div>
+          <div style={{ fontSize: 11, color: "var(--ink-3)", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 6 }}>
+            Admin · Configuration
           </div>
-          <div className="leading-tight">
-            <p className="font-extrabold text-[#0A1120] text-sm">Mastercota</p>
-            <p className="text-[11px] text-[#94A3B8]">Administration</p>
-          </div>
+          <h1 className="serif text-[#143268]" style={{ fontSize: 36, letterSpacing: "-0.025em", margin: 0, lineHeight: 1.05, fontWeight: 500 }}>
+            Paramètres
+          </h1>
         </div>
-        <button
-          onClick={async () => {
-            await supabase.auth.signOut();
-            router.replace("/admin/login");
-          }}
-          className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium text-[#64748B] hover:bg-[#F5F7FB] hover:text-[#0A1120] transition-colors"
-        >
-          <LogOut className="w-4 h-4" />
-          <span className="hidden sm:block">Déconnexion</span>
-        </button>
       </header>
 
-      {/* Main content */}
-      <main className="max-w-2xl mx-auto px-4 py-8 space-y-6">
-        <div>
-          <h1 className="text-xl font-extrabold text-[#0A1120]">Paramètres du site</h1>
-          <p className="text-sm text-[#64748B] mt-1">
-            Ces informations sont affichées sur le site web et dans l'application mobile.
-          </p>
-        </div>
+      {/* Main Content Area */}
+      <div style={{ padding: "32px 40px 60px" }} className="space-y-6 max-w-3xl">
+        <p style={{ color: "var(--ink-3)", fontSize: 14 }}>
+          Gérez les contacts de support, réseaux sociaux officiels, et documents légaux affichés sur le site web et dans l'application mobile.
+        </p>
 
         {/* Tab navigation */}
-        <nav className="flex gap-1 bg-white rounded-2xl p-1 border border-[#E8ECF2] overflow-x-auto">
-          {TABS.map((t) => (
-            <button
-              key={t.id}
-              onClick={() => setTab(t.id)}
-              className={`flex-1 min-w-max px-4 py-2.5 rounded-xl text-sm font-semibold transition-all whitespace-nowrap ${
-                tab === t.id
-                  ? "bg-[#1E5BB4] text-white shadow-sm"
-                  : "text-[#64748B] hover:text-[#0A1120] hover:bg-[#F5F7FB]"
-              }`}
-            >
-              {t.label}
-            </button>
-          ))}
+        <nav style={{
+          display: "flex", gap: 4, background: "var(--paper-2)", borderRadius: 12,
+          padding: 4, border: "1px solid var(--line)"
+        }}>
+          {TABS.map((t) => {
+            const active = tab === t.id;
+            return (
+              <button
+                key={t.id}
+                onClick={() => setTab(t.id)}
+                style={{
+                  flex: 1, textAlign: "center", padding: "10px 16px", borderRadius: 8,
+                  fontSize: 13, fontWeight: 600, border: "none", cursor: "pointer",
+                  background: active ? "var(--ink)" : "transparent",
+                  color: active ? "var(--paper)" : "var(--ink-3)",
+                }}
+                className="transition-all hover:text-[#143268]"
+              >
+                {t.label}
+              </button>
+            );
+          })}
         </nav>
 
         {/* Tab content */}
-        <div className="bg-white rounded-2xl border border-[#E8ECF2] p-6 space-y-5">
+        <div style={{
+          background: "var(--cream)", border: "1px solid var(--line)", borderRadius: 16,
+          padding: 24
+        }} className="space-y-6">
           {tab === "contact" && (
             <>
               <SectionHeader
@@ -454,7 +478,12 @@ export default function AdminPage() {
               <button
                 onClick={handleSave}
                 disabled={saving}
-                className="w-full flex items-center justify-center gap-2 py-3.5 bg-gradient-to-r from-[#EEA226] to-[#C78114] text-white rounded-xl text-sm font-bold hover:shadow-lg hover:shadow-[#EEA226]/20 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+                style={{
+                  width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+                  padding: "12px 16px", background: "var(--ink)", color: "var(--paper)",
+                  border: "none", borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: "pointer"
+                }}
+                className="hover:opacity-90 transition-opacity disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 {saving ? (
                   <><Loader2 className="w-4 h-4 animate-spin" />Sauvegarde...</>
@@ -465,7 +494,7 @@ export default function AdminPage() {
             </div>
           )}
         </div>
-      </main>
+      </div>
     </div>
   );
 }

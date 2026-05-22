@@ -3,8 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { adminFetch } from "@/lib/admin-api";
 import {
-  Search, Wallet,
-  RefreshCw, ExternalLink, Filter,
+  Search, Wallet, RefreshCw, ExternalLink, Filter, ChevronRight
 } from "lucide-react";
 import { Pagination } from "@/app/admin/_components/Pagination";
 
@@ -41,23 +40,24 @@ function fmtDate(iso: string | null) {
   return new Date(iso).toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: "numeric" });
 }
 
-function StatusBadge({ status }: { status: string }) {
-  const map: Record<string, { label: string; cls: string }> = {
-    active:    { label: "Active",    cls: "bg-green-50  text-green-700  border-green-100" },
-    completed: { label: "Complétée", cls: "bg-[#1E5BB4]/5   text-[#1E5BB4]   border-[#1E5BB4]/10" },
-    closed:    { label: "Fermée",    cls: "bg-slate-50  text-slate-500  border-slate-200" },
-    draft:     { label: "Brouillon", cls: "bg-amber-50  text-amber-700  border-amber-100" },
+function StatusDot({ status }: { status: string }) {
+  const map: Record<string, [string, string]> = {
+    active:    ["var(--accent-dark)", "Active"],
+    completed: ["var(--forest)", "Atteinte"],
+    closed:    ["var(--ink-3)", "Clôturée"],
+    draft:     ["var(--warn)", "Brouillon"],
   };
-  const { label, cls } = map[status] ?? { label: status, cls: "bg-slate-50 text-slate-500 border-slate-200" };
+  const [c, l] = map[status] ?? ["var(--ink-3)", status];
   return (
-    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${cls}`}>
-      {label}
+    <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 11, color: "var(--ink-2)" }}>
+      <span style={{ width: 6, height: 6, borderRadius: "50%", background: c }} />
+      {l}
     </span>
   );
 }
 
 const STATUS_OPTIONS = [
-  { value: "", label: "Tous" },
+  { value: "", label: "Tous les statuts" },
   { value: "active", label: "Actives" },
   { value: "completed", label: "Complétées" },
   { value: "closed", label: "Fermées" },
@@ -97,163 +97,227 @@ export default function CotisationsPage() {
   const totalPages = data ? Math.ceil(data.total / limit) : 1;
 
   return (
-    <div className="p-4 md:p-6 space-y-5">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-        <div className="flex-1">
-          <h1 className="text-xl font-bold text-[#0A1120]">Cotisations</h1>
-          <p className="text-sm text-[#64748B] mt-0.5">
-            {data ? `${data.total.toLocaleString("fr-FR")} au total` : "Chargement…"}
-          </p>
+    <div>
+      {/* Page Header */}
+      <header style={{
+        padding: "28px 40px 20px", display: "flex", justifyContent: "space-between",
+        alignItems: "flex-end", gap: 24, borderBottom: "1px solid var(--line)",
+        background: "var(--cream)"
+      }} className="flex-col sm:flex-row">
+        <div>
+          <div style={{ fontSize: 11, color: "var(--ink-3)", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 6 }}>
+            Admin · Cotisations
+          </div>
+          <h1 className="serif text-[#143268]" style={{ fontSize: 36, letterSpacing: "-0.025em", margin: 0, lineHeight: 1.05, fontWeight: 500 }}>
+            Cotisations
+          </h1>
         </div>
-        <button
-          onClick={load}
-          disabled={loading}
-          className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-[#64748B] bg-white border border-[#E2E8F0] rounded-xl hover:bg-[#F8FAFC] transition-all disabled:opacity-50"
-        >
-          <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`} />
-          Actualiser
-        </button>
-      </div>
-
-      {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-3">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#94A3B8]" />
-          <input
-            type="text"
-            placeholder="Rechercher par titre, slug ou propriétaire…"
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 text-sm bg-white border border-[#E2E8F0] rounded-xl text-[#0A1120] placeholder:text-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#1E5BB4]/20 focus:border-[#1E5BB4]/40"
-          />
-        </div>
-        <div className="flex items-center gap-2 bg-white border border-[#E2E8F0] rounded-xl px-3 py-2.5 text-sm shrink-0">
-          <Filter className="w-3.5 h-3.5 text-[#94A3B8]" />
-          <select
-            value={statusFilter}
-            onChange={e => { setStatusFilter(e.target.value); setPage(1); }}
-            className="bg-transparent text-[#0A1120] focus:outline-none text-sm"
+        <div className="flex gap-2.5 items-center shrink-0 w-full sm:w-auto justify-end">
+          <button
+            onClick={load}
+            disabled={loading}
+            style={{ height: 38, padding: "0 14px", borderRadius: 999, border: "1px solid var(--line)", background: "var(--cream)" }}
+            className="flex items-center gap-2 hover:bg-slate-50 transition-colors text-xs font-semibold text-[#143268] disabled:opacity-50"
           >
-            {STATUS_OPTIONS.map(o => (
-              <option key={o.value} value={o.value}>{o.label}</option>
-            ))}
-          </select>
+            <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`} />
+            Actualiser
+          </button>
         </div>
-      </div>
+      </header>
 
-      {/* Table */}
-      <div className="bg-white rounded-2xl border border-[#E2E8F0] overflow-hidden shadow-sm">
-        {loading ? (
-          <div className="flex items-center justify-center py-16">
-            <RefreshCw className="w-6 h-6 text-[#EEA226] animate-spin" />
+      {/* Main Content Area */}
+      <div style={{ padding: "32px 40px 60px" }} className="space-y-6">
+
+        {/* Filter Toolbar & Search */}
+        <div className="flex flex-col md:flex-row gap-3">
+          <div className="relative flex-1">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#94A3B8]" />
+            <input
+              type="text"
+              placeholder="Rechercher par titre, slug ou propriétaire…"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              style={{
+                height: 38, padding: "0 14px 0 40px", borderRadius: 999,
+                background: "var(--cream)", border: "1px solid var(--line)",
+                color: "var(--ink)", fontSize: 13, outline: "none"
+              }}
+              className="w-full focus:border-slate-400 transition-colors"
+            />
           </div>
-        ) : !data?.cotisations.length ? (
-          <div className="flex flex-col items-center justify-center py-16 text-[#94A3B8]">
-            <Wallet className="w-10 h-10 mb-3 opacity-40" />
-            <p className="text-sm font-medium">Aucune cotisation trouvée</p>
+
+          <div className="flex items-center gap-2 shrink-0">
+            <select
+              value={statusFilter}
+              onChange={e => { setStatusFilter(e.target.value); setPage(1); }}
+              style={{
+                height: 38, padding: "0 28px 0 14px", borderRadius: 999,
+                background: "var(--cream)", border: "1px solid var(--line)",
+                color: "var(--ink)", fontSize: 13, fontWeight: 500,
+                outline: "none", appearance: "none"
+              }}
+              className="cursor-pointer bg-[url('data:image/svg+xml;charset=UTF-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2212%22%20height%3D%2212%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%236B7A95%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E')] bg-[length:12px] bg-[right_12px_center] bg-no-repeat"
+            >
+              {STATUS_OPTIONS.map(o => (
+                <option key={o.value} value={o.value}>{o.label}</option>
+              ))}
+            </select>
           </div>
-        ) : (
-          <>
-            {/* Desktop table */}
-            <div className="hidden md:block overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-[#E2E8F0] bg-[#F8FAFC]">
-                    <th className="text-left px-4 py-3 font-semibold text-[#64748B] text-xs uppercase tracking-wide">Cotisation</th>
-                    <th className="text-left px-4 py-3 font-semibold text-[#64748B] text-xs uppercase tracking-wide">Propriétaire</th>
-                    <th className="text-left px-4 py-3 font-semibold text-[#64748B] text-xs uppercase tracking-wide">Statut</th>
-                    <th className="text-left px-4 py-3 font-semibold text-[#64748B] text-xs uppercase tracking-wide min-w-[180px]">Progression</th>
-                    <th className="text-right px-4 py-3 font-semibold text-[#64748B] text-xs uppercase tracking-wide">Paiements</th>
-                    <th className="text-left px-4 py-3 font-semibold text-[#64748B] text-xs uppercase tracking-wide">Échéance</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-[#F1F5F9]">
-                  {data.cotisations.map(c => (
-                    <tr key={c.id} className="hover:bg-[#F8FAFC] transition-colors group">
-                      <td className="px-4 py-3.5">
-                        <div className="flex items-center gap-2">
-                          <div>
-                            <p className="font-semibold text-[#0A1120] leading-snug line-clamp-1">{c.title}</p>
-                            <p className="text-xs text-[#94A3B8]">{c.slug}</p>
+        </div>
+
+        {/* Dynamic status pill filters */}
+        <div style={{ display: "flex", gap: 8 }} className="overflow-x-auto pb-1 no-scrollbar flex-wrap">
+          {[
+            { value: "", label: "Toutes", count: data?.total ?? 0 },
+            { value: "active", label: "Actives", count: data?.cotisations.filter(c => c.status === "active").length ?? 0 },
+            { value: "completed", label: "Atteintes", count: data?.cotisations.filter(c => c.status === "completed").length ?? 0 },
+            { value: "closed", label: "Clôturées", count: data?.cotisations.filter(c => c.status === "closed").length ?? 0 },
+          ].map(pill => {
+            const active = statusFilter === pill.value;
+            return (
+              <button
+                key={pill.label}
+                onClick={() => { setStatusFilter(pill.value); setPage(1); }}
+                style={{
+                  padding: "8px 14px", borderRadius: 999, fontSize: 12, fontWeight: 500,
+                  background: active ? "var(--ink)" : "var(--cream)",
+                  color: active ? "var(--paper)" : "var(--ink-2)",
+                  border: "1px solid " + (active ? "var(--ink)" : "var(--line)"),
+                }}
+                className="transition-colors hover:border-slate-400"
+              >
+                {pill.label} <span style={{ opacity: active ? 0.5 : 0.7, marginLeft: 4 }} className="mono">{pill.count > 0 ? pill.count : ""}</span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Panel Wrap */}
+        <div style={{
+          background: "var(--cream)", border: "1px solid var(--line)", borderRadius: 16,
+          overflow: "hidden"
+        }}>
+          {loading ? (
+            <div className="flex items-center justify-center py-20">
+              <RefreshCw className="w-6 h-6 text-[#DA9810] animate-spin" />
+            </div>
+          ) : !data?.cotisations.length ? (
+            <div className="flex flex-col items-center justify-center py-20 text-[#6B7A95]">
+              <Wallet className="w-10 h-10 mb-3 opacity-40" />
+              <p className="text-sm font-medium">Aucune cotisation trouvée</p>
+            </div>
+          ) : (
+            <>
+              {/* Desktop Table View */}
+              <div className="hidden md:block overflow-x-auto">
+                <table className="w-full text-left border-collapse" style={{ fontSize: 13 }}>
+                  <thead>
+                    <tr style={{ borderBottom: "1px solid var(--line)", background: "var(--paper)", fontSize: 10, color: "var(--ink-3)", textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 500 }}>
+                      <th style={{ padding: "12px 16px" }} className="w-8"><input type="checkbox" className="accent-[#DA9810]" /></th>
+                      <th style={{ padding: "12px 16px" }}>Titre</th>
+                      <th style={{ padding: "12px 16px" }}>Propriétaire</th>
+                      <th style={{ padding: "12px 16px" }}>Collecté</th>
+                      <th style={{ padding: "12px 16px" }}>Objectif</th>
+                      <th style={{ padding: "12px 16px" }} className="w-[160px]">Progression</th>
+                      <th style={{ padding: "12px 16px" }}>Statut</th>
+                      <th style={{ padding: "12px 16px" }}>Date / Échéance</th>
+                      <th style={{ padding: "12px 16px" }} className="w-10"></th>
+                    </tr>
+                  </thead>
+                  <tbody style={{ color: "var(--ink-2)" }}>
+                    {data.cotisations.map((c, idx) => (
+                      <tr
+                        key={c.id}
+                        style={{ borderBottom: idx < data.cotisations.length - 1 ? "1px solid var(--line-soft)" : "none" }}
+                        className="hover:bg-slate-50/50 transition-colors group"
+                      >
+                        <td style={{ padding: "14px 16px" }}><input type="checkbox" className="accent-[#DA9810]" /></td>
+                        <td style={{ padding: "14px 16px" }}>
+                          <div style={{ minWidth: 0 }} className="flex flex-col">
+                            <span style={{ fontWeight: 500, color: "var(--ink)" }} className="line-clamp-1">{c.title}</span>
+                            <span className="mono" style={{ fontSize: 11, color: "var(--ink-4)", marginTop: 2 }}>/c/{c.slug}</span>
                           </div>
+                        </td>
+                        <td style={{ padding: "14px 16px" }}>{c.owner_phone}</td>
+                        <td style={{ padding: "14px 16px" }} className="mono font-medium">{fmtAmount(c.current_amount)} F</td>
+                        <td style={{ padding: "14px 16px" }} className="mono text-slate-400">{fmtAmount(c.target_amount)} F</td>
+                        <td style={{ padding: "14px 16px" }}>
+                          <div>
+                            <div className="bar" style={{ height: 6, background: "var(--paper-2)", borderRadius: 999, overflow: "hidden" }}>
+                              <div
+                                className="bar-fill"
+                                style={{
+                                  width: Math.min(c.progress, 100) + "%",
+                                  height: "100%",
+                                  background: c.progress >= 100 ? "var(--forest)" : "var(--accent-bright)",
+                                  borderRadius: 999
+                                }}
+                              />
+                            </div>
+                            <div className="mono" style={{ fontSize: 10, color: "var(--ink-3)", marginTop: 4 }}>{c.progress} %</div>
+                          </div>
+                        </td>
+                        <td style={{ padding: "14px 16px" }}><StatusDot status={c.status} /></td>
+                        <td style={{ padding: "14px 16px" }} className="text-slate-400 text-xs">{fmtDate(c.deadline)}</td>
+                        <td style={{ padding: "14px 16px" }} className="text-right">
                           <a
                             href={`https://mastercota.com/c/${c.slug}`}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="opacity-0 group-hover:opacity-100 transition-opacity text-[#94A3B8] hover:text-[#1E5BB4]"
+                            className="opacity-0 group-hover:opacity-100 transition-opacity text-slate-400 hover:text-[#1E5BB4]"
                           >
                             <ExternalLink className="w-3.5 h-3.5" />
                           </a>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3.5 text-[#475569]">{c.owner_phone}</td>
-                      <td className="px-4 py-3.5"><StatusBadge status={c.status} /></td>
-                      <td className="px-4 py-3.5">
-                        <div className="space-y-1">
-                          <div className="flex items-center justify-between text-xs">
-                            <span className="font-medium text-[#0A1120]">{fmtAmount(c.current_amount)} FCFA</span>
-                            <span className="text-[#94A3B8]">{c.progress}%</span>
-                          </div>
-                          <div className="h-1.5 bg-[#F1F5F9] rounded-full overflow-hidden">
-                            <div
-                              className="h-full rounded-full bg-gradient-to-r from-[#EEA226] to-[#1E5BB4] transition-all"
-                              style={{ width: `${Math.min(c.progress, 100)}%` }}
-                            />
-                          </div>
-                          <p className="text-xs text-[#94A3B8]">sur {fmtAmount(c.target_amount)} FCFA</p>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3.5 text-right">
-                        <div className="flex flex-col items-end gap-0.5">
-                          <span className="font-semibold text-[#0A1120]">{c.contributions_paid} payés</span>
-                          {c.contributions_pending > 0 && (
-                            <span className="text-xs text-amber-600">{c.contributions_pending} en attente</span>
-                          )}
-                        </div>
-                      </td>
-                      <td className="px-4 py-3.5 text-[#475569]">{fmtDate(c.deadline)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
 
-            {/* Mobile cards */}
-            <div className="md:hidden divide-y divide-[#F1F5F9]">
-              {data.cotisations.map(c => (
-                <div key={c.id} className="px-4 py-4 space-y-3">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex-1 min-w-0">
-                      <p className="font-semibold text-[#0A1120] leading-snug line-clamp-2">{c.title}</p>
-                      <p className="text-xs text-[#94A3B8] mt-0.5">{c.owner_phone}</p>
+              {/* Mobile Card List View */}
+              <div className="md:hidden divide-y divide-[#F1F5F9]">
+                {data.cotisations.map(c => (
+                  <div key={c.id} className="p-4 space-y-3">
+                    <div className="flex justify-between items-start">
+                      <div className="flex-1 min-w-0">
+                        <span className="font-semibold text-sm text-[#143268] block line-clamp-1">{c.title}</span>
+                        <span className="text-xs text-slate-400 block mt-0.5">{c.owner_phone}</span>
+                      </div>
+                      <StatusDot status={c.status} />
                     </div>
-                    <StatusBadge status={c.status} />
-                  </div>
-                  <div className="space-y-1">
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="font-medium text-[#0A1120]">{fmtAmount(c.current_amount)} FCFA</span>
-                      <span className="text-[#94A3B8]">{c.progress}% · objectif {fmtAmount(c.target_amount)} F</span>
+                    <div>
+                      <div className="flex justify-between text-xs mb-1">
+                        <span className="font-medium text-slate-700">{fmtAmount(c.current_amount)} F</span>
+                        <span className="text-slate-400">{c.progress}% (Obj: {fmtAmount(c.target_amount)} F)</span>
+                      </div>
+                      <div className="bar" style={{ height: 6, background: "var(--paper-2)", borderRadius: 999, overflow: "hidden" }}>
+                        <div
+                          className="bar-fill"
+                          style={{
+                            width: Math.min(c.progress, 100) + "%",
+                            height: "100%",
+                            background: c.progress >= 100 ? "var(--forest)" : "var(--accent-bright)",
+                            borderRadius: 999
+                          }}
+                        />
+                      </div>
                     </div>
-                    <div className="h-2 bg-[#F1F5F9] rounded-full overflow-hidden">
-                      <div
-                        className="h-full rounded-full bg-gradient-to-r from-[#EEA226] to-[#1E5BB4]"
-                        style={{ width: `${Math.min(c.progress, 100)}%` }}
-                      />
+                    <div className="flex justify-between text-xs text-slate-400 pt-1">
+                      <span>{c.contributions_paid} contributions</span>
+                      <span>Échéance: {fmtDate(c.deadline)}</span>
                     </div>
                   </div>
-                  <div className="flex items-center justify-between text-xs text-[#64748B]">
-                    <span>{c.contributions_paid} paiements</span>
-                    <span>Échéance : {fmtDate(c.deadline)}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </>
-        )}
+                ))}
+              </div>
+            </>
+          )}
 
-        <Pagination page={page} totalPages={totalPages} total={data?.total ?? 0} limit={limit} onChange={setPage} />
+          <Pagination page={page} totalPages={totalPages} total={data?.total ?? 0} limit={limit} onChange={setPage} />
+        </div>
+
       </div>
     </div>
   );
 }
+

@@ -11,16 +11,20 @@ import {
 } from "lucide-react";
 
 const NAV = [
-  { href: "/admin/dashboard", icon: LayoutDashboard, label: "Tableau de bord" },
-  { href: "/admin/users", icon: Users, label: "Utilisateurs" },
-  { href: "/admin/cotisations", icon: Wallet, label: "Cotisations" },
-  { href: "/admin/contributions", icon: CreditCard, label: "Paiements" },
-  { href: "/admin/settings", icon: Settings, label: "Paramètres" },
+  { href: "/admin/dashboard", icon: LayoutDashboard, label: "Tableau de bord", symbol: "▦" },
+  { href: "/admin/users", icon: Users, label: "Utilisateurs", symbol: "○○" },
+  { href: "/admin/cotisations", icon: Wallet, label: "Cotisations", symbol: "◐" },
+  { href: "/admin/contributions", icon: CreditCard, label: "Paiements", symbol: "↗" },
+  { href: "/admin/settings", icon: Settings, label: "Paramètres", symbol: "⚙" },
 ];
 
-function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
+function Sidebar({ open, onClose, email }: { open: boolean; onClose: () => void; email: string }) {
   const pathname = usePathname();
   const router = useRouter();
+  
+  // Get initials from email
+  const initials = email ? email.slice(0, 2).toUpperCase() : "AD";
+  const displayName = email ? email.split("@")[0].charAt(0).toUpperCase() + email.split("@")[0].slice(1) : "Admin";
 
   return (
     <>
@@ -31,70 +35,127 @@ function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
         />
       )}
       <aside
+        style={{
+          background: "var(--ink)",
+          color: "var(--paper)",
+        }}
         className={`
           fixed md:sticky top-0 left-0 h-screen w-60 flex flex-col flex-shrink-0
-          bg-[#0A1120] z-50
-          transition-transform duration-300 ease-in-out
+          z-50 py-6 transition-transform duration-300 ease-in-out
           md:translate-x-0
           ${open ? "translate-x-0 shadow-2xl" : "-translate-x-full"}
         `}
       >
-        {/* Logo */}
-        <div className="flex items-center justify-between px-4 h-16 border-b border-white/8 flex-shrink-0">
-          <div className="flex items-center gap-2.5 min-w-0">
-            <div className="w-9 h-9 rounded-xl overflow-hidden flex-shrink-0 bg-[#0D1829]">
-              <Image src="/app_icon.png" alt="Mastercota" width={36} height={36} className="w-full h-full object-cover" />
+        {/* Header Logo */}
+        <div className="px-5 pb-5 border-b border-white/8 flex-shrink-0">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg overflow-hidden flex-shrink-0 bg-white/10 flex items-center justify-center">
+                <Image src="/app_icon.png" alt="MasterCota" width={32} height={32} className="w-full h-full object-cover" />
+              </div>
+              <div>
+                <div style={{ fontSize: 14, fontWeight: 500, color: "var(--paper)" }}>MasterCota</div>
+                <div style={{ fontSize: 10, color: "rgba(255,255,255,0.4)", letterSpacing: "0.04em", textTransform: "uppercase" }}>
+                  Admin
+                </div>
+              </div>
             </div>
-            <div className="min-w-0">
-              <p className="text-white font-extrabold text-sm leading-tight tracking-tight">Mastercota</p>
-              <p className="text-white/30 text-[10px] leading-tight">Admin Dashboard</p>
-            </div>
+            <button
+              onClick={onClose}
+              className="md:hidden w-7 h-7 flex items-center justify-center rounded-lg text-white/40 hover:text-white hover:bg-white/10 transition-all flex-shrink-0"
+            >
+              <X className="w-4 h-4" />
+            </button>
           </div>
-          <button
-            onClick={onClose}
-            className="md:hidden w-7 h-7 flex items-center justify-center rounded-lg text-white/40 hover:text-white hover:bg-white/10 transition-all flex-shrink-0"
-          >
-            <X className="w-4 h-4" />
-          </button>
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
-          {NAV.map(({ href, icon: Icon, label }) => {
-            const isActive =
-              pathname === href || pathname.startsWith(href + "/");
+        <nav className="flex-1 px-3 py-6 flex flex-col gap-0.5 overflow-y-auto">
+          <div style={{
+            fontSize: 10, color: "rgba(255,255,255,0.35)", letterSpacing: "0.1em",
+            textTransform: "uppercase", padding: "0 12px 10px"
+          }}>
+            Navigation
+          </div>
+          {NAV.map(({ href, icon: Icon, label, symbol }) => {
+            const isActive = pathname === href || pathname.startsWith(href + "/");
             return (
               <Link
                 key={href}
                 href={href}
                 onClick={onClose}
-                className={`
-                  flex items-center gap-3 py-2.5 pr-3 rounded-r-xl text-sm font-medium transition-all
-                  ${
-                    isActive
-                      ? "bg-[#1E5BB4]/15 text-[#EEA226] border-l-4 border-[#EEA226] pl-2"
-                      : "text-white/45 hover:text-white hover:bg-white/5 border-l-4 border-transparent pl-3"
-                  }
-                `}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 12,
+                  padding: "10px 12px",
+                  borderRadius: 10,
+                  background: isActive ? "rgba(244,184,41,0.12)" : "transparent",
+                  color: isActive ? "var(--accent-bright)" : "rgba(255,255,255,0.6)",
+                  fontSize: 13,
+                  fontWeight: 500,
+                  position: "relative"
+                }}
+                className="transition-colors hover:text-white group"
               >
-                <Icon className="w-4 h-4 flex-shrink-0" />
+                {isActive && (
+                  <span style={{
+                    position: "absolute", left: -12, top: 6, bottom: 6, width: 3,
+                    background: "var(--accent-bright)", borderRadius: "0 4px 4px 0"
+                  }} />
+                )}
+                <span 
+                  style={{
+                    width: 20, textAlign: "center", fontFamily: "var(--mono)",
+                    fontSize: 11, opacity: 0.85
+                  }}
+                  className="flex justify-center items-center shrink-0"
+                >
+                  <Icon className="w-3.5 h-3.5" />
+                </span>
                 {label}
               </Link>
             );
           })}
         </nav>
 
-        {/* Logout */}
-        <div className="px-3 pb-4 flex-shrink-0">
+        {/* Administrator profile and logout */}
+        <div className="px-3 flex-shrink-0">
+          <div style={{
+            padding: "12px 14px", borderRadius: 12,
+            background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)",
+            display: "flex", alignItems: "center", gap: 12
+          }}>
+            <div style={{
+              width: 32, height: 32, borderRadius: 50, background: "var(--accent-bright)",
+              color: "var(--ink)", display: "flex", alignItems: "center", justifyContent: "center",
+              fontSize: 13, fontWeight: 600
+            }} className="flex items-center justify-center shrink-0 select-none">
+              {initials}
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 12, fontWeight: 500, color: "var(--paper)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                {displayName}
+              </div>
+              <div style={{ fontSize: 10, color: "rgba(255,255,255,0.4)" }} className="mono truncate">
+                {email}
+              </div>
+            </div>
+          </div>
+          
           <button
             onClick={async () => {
               await supabase.auth.signOut();
               router.replace("/admin/login");
             }}
-            className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-white/35 hover:text-red-400 hover:bg-red-500/10 w-full transition-all"
+            style={{
+              width: "100%", marginTop: 10, padding: "10px 12px", borderRadius: 10,
+              background: "transparent", color: "rgba(255,255,255,0.4)",
+              border: "none", fontSize: 12, textAlign: "left", display: "flex", alignItems: "center", gap: 10
+            }}
+            className="hover:text-red-400 hover:bg-white/5 transition-colors cursor-pointer"
           >
-            <LogOut className="w-4 h-4 flex-shrink-0" />
-            Se déconnecter
+            <span style={{ fontFamily: "var(--mono)" }}>↗</span> Se déconnecter
           </button>
         </div>
       </aside>
@@ -105,14 +166,26 @@ function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
 function AuthGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const [ready, setReady] = useState(false);
+  const [email, setEmail] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
+    // Initial session check
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!session) {
+        router.replace("/admin/login");
+      } else {
+        setEmail(session.user?.email || "admin@mastercota.com");
+        setReady(true);
+      }
+    });
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (!session) {
         setReady(false);
         router.replace("/admin/login");
       } else {
+        setEmail(session.user?.email || "admin@mastercota.com");
         setReady(true);
       }
     });
@@ -122,36 +195,38 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
 
   if (!ready) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#F5F7FB]">
-        <Loader2 className="w-7 h-7 text-[#EEA226] animate-spin" />
+      <div className="min-h-screen flex items-center justify-center bg-[#FAFBFD]">
+        <Loader2 className="w-7 h-7 text-[#DA9810] animate-spin" />
       </div>
     );
   }
 
   return (
-    <div className="flex h-screen overflow-hidden bg-[#F5F7FB]">
-      <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+    <div className="flex h-screen overflow-hidden bg-[#FAFBFD]">
+      <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} email={email} />
 
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* Mobile top bar */}
-        <div className="md:hidden flex items-center gap-3 px-4 h-14 bg-white border-b border-[#E2E8F0] flex-shrink-0 shadow-sm">
-          <button
-            onClick={() => setSidebarOpen(true)}
-            className="p-1.5 rounded-lg text-[#64748B] hover:bg-[#F0F4F8] hover:text-[#0A1120] transition-all"
-          >
-            <Menu className="w-5 h-5" />
-          </button>
-          <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg overflow-hidden bg-[#0D1829] flex-shrink-0">
-              <Image src="/app_icon.png" alt="Mastercota" width={28} height={28} className="w-full h-full object-cover" />
+        <div className="md:hidden flex items-center gap-3 px-4 h-14 bg-white border-b border-slate-100 flex-shrink-0 shadow-sm justify-between">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setSidebarOpen(true)}
+              className="p-1.5 rounded-lg text-[#64748B] hover:bg-[#F0F4F8] hover:text-[#0A1120] transition-all"
+            >
+              <Menu className="w-5 h-5" />
+            </button>
+            <div className="flex items-center gap-2">
+              <div className="w-7 h-7 rounded-lg overflow-hidden bg-slate-100 flex-shrink-0">
+                <Image src="/app_icon.png" alt="Mastercota" width={28} height={28} className="w-full h-full object-cover" />
+              </div>
+              <span className="font-extrabold text-sm text-[#0A1120]">
+                MasterCota Admin
+              </span>
             </div>
-            <span className="font-extrabold text-sm text-[#0A1120]">
-              Mastercota Admin
-            </span>
           </div>
         </div>
 
-        <main className="flex-1 overflow-y-auto">{children}</main>
+        <main className="flex-1 overflow-y-auto bg-[#EEF2F8]">{children}</main>
       </div>
     </div>
   );
@@ -166,3 +241,4 @@ export default function AdminLayout({
   if (pathname === "/admin/login") return <>{children}</>;
   return <AuthGuard>{children}</AuthGuard>;
 }
+
