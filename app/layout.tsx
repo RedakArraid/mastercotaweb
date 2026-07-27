@@ -1,28 +1,39 @@
 import type { Metadata } from "next";
+import { Plus_Jakarta_Sans, Geist_Mono } from "next/font/google";
+import { Toaster } from "@/components/ui/sonner";
+import { APP_NAME, APP_TAGLINE } from "@/lib/constants";
 import "./globals.css";
 
+const jakarta = Plus_Jakarta_Sans({
+  variable: "--font-sans",
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700", "800"],
+});
+
+const geistMono = Geist_Mono({
+  variable: "--font-geist-mono",
+  subsets: ["latin"],
+});
+
 export const metadata: Metadata = {
-  title: "MasterCota — Plus simple de cotiser",
-  description:
-    "La plateforme de cotisations collectives pour l'Afrique francophone. Mobile Money, transparence totale, reversement automatique.",
+  title: {
+    default: APP_NAME,
+    template: `%s · ${APP_NAME}`,
+  },
+  description: APP_TAGLINE,
 };
 
 export default function RootLayout({
   children,
-}: {
+}: Readonly<{
   children: React.ReactNode;
-}) {
+}>) {
   return (
-    <html lang="fr" className="h-full">
-      <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
-        <link
-          href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500&family=Newsreader:ital,wght@0,400;1,400&display=swap"
-          rel="stylesheet"
-        />
-      </head>
-      <body className="min-h-full">{children}</body>
+    <html lang="fr">
+      <body className={`${jakarta.variable} ${geistMono.variable} font-sans antialiased`}>
+        {children}
+        <Toaster richColors position="top-center" />
+      </body>
     </html>
   );
 }

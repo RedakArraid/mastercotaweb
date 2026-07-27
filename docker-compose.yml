@@ -20,15 +20,12 @@ services:
       - traefik_network
     labels:
       - traefik.enable=true
-      # ── Service ─────────────────────────────────────────────
       - traefik.http.services.mastercota.loadbalancer.server.port=3000
-      # ── Router principal : mastercota.com ───────────────────
       - traefik.http.routers.mastercota.rule=Host(`mastercota.com`)
       - traefik.http.routers.mastercota.entrypoints=websecure
       - traefik.http.routers.mastercota.tls=true
       - traefik.http.routers.mastercota.tls.certresolver=mytlschallenge
       - traefik.http.routers.mastercota.service=mastercota
-      # ── Router www : redirect → mastercota.com ─────────────
       - traefik.http.routers.mastercota-www.rule=Host(`www.mastercota.com`)
       - traefik.http.routers.mastercota-www.entrypoints=websecure
       - traefik.http.routers.mastercota-www.tls=true
